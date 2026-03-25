@@ -20,7 +20,7 @@ class LeaderboardController extends Controller {
                 SUM(ta.score) as total_score,
                 MAX(ta.score) as best_score
             FROM users u
-            LEFT JOIN test_attempts ta ON u.id = ta.user_id
+            LEFT JOIN test_results ta ON u.id = ta.user_id
             WHERE u.role = 'student'
             GROUP BY u.id
             HAVING total_tests > 0

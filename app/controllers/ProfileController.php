@@ -21,11 +21,11 @@ class ProfileController extends Controller {
 
         // Stats
         $stats = [];
-        $stats['total_tests'] = $db->prepare("SELECT COUNT(*) FROM test_attempts WHERE user_id=:id");
+        $stats['total_tests'] = $db->prepare("SELECT COUNT(*) FROM test_results WHERE user_id=:id");
         $stats['total_tests']->execute(['id' => $userId]);
         $stats['total_tests'] = $stats['total_tests']->fetchColumn();
 
-        $stats['avg_score'] = $db->prepare("SELECT ROUND(AVG(score),1) FROM test_attempts WHERE user_id=:id");
+        $stats['avg_score'] = $db->prepare("SELECT ROUND(AVG(score),1) FROM test_results WHERE user_id=:id");
         $stats['avg_score']->execute(['id' => $userId]);
         $stats['avg_score'] = $stats['avg_score']->fetchColumn() ?: 0;
 
@@ -43,7 +43,7 @@ class ProfileController extends Controller {
         // Recent activity
         $recent = $db->prepare("
             SELECT ta.score, ta.completed_at, t.title, t.test_type
-            FROM test_attempts ta JOIN tests t ON ta.test_id=t.id
+            FROM test_results ta JOIN tests t ON ta.test_id=t.id
             WHERE ta.user_id=:id ORDER BY ta.completed_at DESC LIMIT 10
         ");
         $recent->execute(['id' => $userId]);
@@ -112,7 +112,7 @@ class ProfileController extends Controller {
 
         // Check perfect score
         $db = getDB();
-        $perfect = $db->prepare("SELECT COUNT(*) FROM test_attempts WHERE user_id=:id AND score=100");
+        $perfect = $db->prepare("SELECT COUNT(*) FROM test_results WHERE user_id=:id AND score=100");
         $perfect->execute(['id' => $userId]);
         $allBadges[2]['earned'] = $perfect->fetchColumn() > 0;
 

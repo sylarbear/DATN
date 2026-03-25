@@ -18,7 +18,7 @@ class AdminController extends Controller {
         $stats['total_topics'] = $db->query("SELECT COUNT(*) FROM topics")->fetchColumn();
         $stats['total_tests'] = $db->query("SELECT COUNT(*) FROM tests")->fetchColumn();
         $stats['total_questions'] = $db->query("SELECT COUNT(*) FROM questions")->fetchColumn();
-        $stats['total_attempts'] = $db->query("SELECT COUNT(*) FROM test_attempts")->fetchColumn();
+        $stats['total_attempts'] = $db->query("SELECT COUNT(*) FROM test_results")->fetchColumn();
         $stats['unused_codes'] = $db->query("SELECT COUNT(*) FROM activation_codes WHERE is_used=0")->fetchColumn();
         $stats['used_codes'] = $db->query("SELECT COUNT(*) FROM activation_codes WHERE is_used=1")->fetchColumn();
 
@@ -27,7 +27,7 @@ class AdminController extends Controller {
         // Recent attempts
         $stats['recent_attempts'] = $db->query("
             SELECT ta.*, u.username, t.title as test_title 
-            FROM test_attempts ta 
+            FROM test_results ta 
             JOIN users u ON ta.user_id = u.id 
             JOIN tests t ON ta.test_id = t.id 
             ORDER BY ta.completed_at DESC LIMIT 5
@@ -79,7 +79,7 @@ class AdminController extends Controller {
         if (!$this->isMethod('POST')) $this->json(['error' => 'Method not allowed'], 405);
         $input = json_decode(file_get_contents('php://input'), true);
         $db = getDB();
-        $db->prepare("DELETE FROM test_attempts WHERE user_id=:id")->execute(['id' => $input['id']]);
+        $db->prepare("DELETE FROM test_results WHERE user_id=:id")->execute(['id' => $input['id']]);
         $db->prepare("DELETE FROM speaking_attempts WHERE user_id=:id")->execute(['id' => $input['id']]);
         $db->prepare("DELETE FROM membership_orders WHERE user_id=:id")->execute(['id' => $input['id']]);
         $db->prepare("DELETE FROM users WHERE id=:id AND role != 'admin'")->execute(['id' => $input['id']]);
