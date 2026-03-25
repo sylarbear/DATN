@@ -1,0 +1,17 @@
+# XAMPP / System
+.git/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Debug
+debug_*.php
