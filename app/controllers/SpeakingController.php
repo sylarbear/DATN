@@ -57,6 +57,7 @@ class SpeakingController extends Controller {
 
     /**
      * Chấm điểm speaking (AJAX)
+     * Ưu tiên dùng OpenAI, fallback về rule-based
      */
     public function score() {
         Middleware::requireLogin();
@@ -81,8 +82,20 @@ class SpeakingController extends Controller {
             $this->json(['error' => 'Prompt không tồn tại'], 404);
         }
 
-        // Chấm điểm
-        $scores = $speakingModel->scoreSpeaking($transcript, $prompt['sample_answer'], $confidence);
+        // Try AI scoring first
+        $scores = null;
+        $aiUsed = false;
+        require_once APP_PATH . '/core/OpenAIService.php';
+        
+        if (OpenAIService::isAvailable()) {
+            $scores = OpenAIService::scoreSpeaking($transcript, $prompt['sample_answer']);
+            if ($scores) $aiUsed = true;
+        }
+
+        // Fallback to local scoring
+        if (!$scores) {
+            $scores = $speakingModel->scoreSpeaking($transcript, $prompt['sample_answer'], $confidence);
+        }
 
         // Lưu attempt
         $attemptId = $speakingModel->saveAttempt($_SESSION['user_id'], $promptId, $transcript, $scores);
@@ -96,7 +109,8 @@ class SpeakingController extends Controller {
             'success'    => true,
             'attempt_id' => $attemptId,
             'scores'     => $scores,
-            'transcript' => $transcript
+            'transcript' => $transcript,
+            'ai_used'    => $aiUsed
         ]);
     }
 }

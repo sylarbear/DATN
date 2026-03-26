@@ -9,6 +9,7 @@
             <a href="<?= BASE_URL ?>/admin/topics" class="admin-nav-item"><i class="fas fa-book"></i> Chủ đề</a>
             <a href="<?= BASE_URL ?>/admin/questions" class="admin-nav-item"><i class="fas fa-question-circle"></i> Câu hỏi</a>
             <a href="<?= BASE_URL ?>/admin/codes" class="admin-nav-item active"><i class="fas fa-key"></i> Mã kích hoạt</a>
+            <a href="<?= BASE_URL ?>/admin/settings" class="admin-nav-item"><i class="fas fa-cog"></i> Cài đặt</a>
         </div>
     </div>
 </section>

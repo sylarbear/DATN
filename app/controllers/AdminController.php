@@ -223,4 +223,34 @@ class AdminController extends Controller {
         $db->prepare("DELETE FROM activation_codes WHERE id=:id AND is_used=0")->execute(['id' => $input['id']]);
         $this->json(['success' => true, 'message' => 'Đã xóa mã']);
     }
+
+    /** Trang cài đặt hệ thống */
+    public function settings() {
+        require_once APP_PATH . '/core/OpenAIService.php';
+        $currentKey = OpenAIService::getApiKey();
+        $maskedKey = $currentKey ? (substr($currentKey, 0, 8) . '****' . substr($currentKey, -4)) : '';
+
+        $this->view('admin/settings', [
+            'title' => 'Cài đặt hệ thống - Admin',
+            'hasKey' => !empty($currentKey),
+            'maskedKey' => $maskedKey
+        ]);
+    }
+
+    /** Lưu API key (AJAX) */
+    public function saveSettings() {
+        if (!$this->isMethod('POST')) $this->json(['error' => 'Method not allowed'], 405);
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        require_once APP_PATH . '/core/OpenAIService.php';
+        
+        $apiKey = trim($input['openai_key'] ?? '');
+        OpenAIService::saveApiKey($apiKey);
+        
+        $this->json([
+            'success' => true,
+            'message' => $apiKey ? 'Đã lưu API key thành công. AI Speaking + Chatbot đã được kích hoạt!' : 'Đã xóa API key. AI features bị vô hiệu hóa.',
+            'hasKey' => !empty($apiKey)
+        ]);
+    }
 }
