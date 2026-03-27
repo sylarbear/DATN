@@ -27,3 +27,9 @@ define('SESSION_LIFETIME', 3600); // 1 giờ
 define('ACCURACY_WEIGHT', 0.4);
 define('FLUENCY_WEIGHT', 0.3);
 define('PRONUNCIATION_WEIGHT', 0.3);
+
+// Google OAuth 2.0 Configuration
+// Lấy tại: https://console.cloud.google.com/apis/credentials
+define('GOOGLE_CLIENT_ID', '');      // ← Dán Google Client ID vào đây
+define('GOOGLE_CLIENT_SECRET', '');   // ← Dán Google Client Secret vào đây
+define('GOOGLE_REDIRECT_URI', BASE_URL . '/auth/googleCallback');

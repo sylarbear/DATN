@@ -174,4 +174,76 @@ class AuthController extends Controller {
         header("Location: " . BASE_URL . "/auth/login");
         exit;
     }
+
+    /**
+     * Redirect đến Google OAuth
+     */
+    public function google() {
+        if (empty(GOOGLE_CLIENT_ID)) {
+            $this->setFlash('error', 'Google Login chưa được cấu hình. Vui lòng liên hệ admin.');
+            $this->redirect('auth/login');
+        }
+        require_once APP_PATH . '/core/GoogleOAuth.php';
+        $authUrl = GoogleOAuth::getAuthUrl();
+        header("Location: $authUrl");
+        exit;
+    }
+
+    /**
+     * Callback sau khi Google xác thực
+     */
+    public function googleCallback() {
+        require_once APP_PATH . '/core/GoogleOAuth.php';
+
+        // Kiểm tra lỗi từ Google
+        if (isset($_GET['error'])) {
+            $this->setFlash('error', 'Đăng nhập Google bị từ chối.');
+            $this->redirect('auth/login');
+        }
+
+        $code  = $_GET['code'] ?? '';
+        $state = $_GET['state'] ?? '';
+
+        // Xác thực CSRF state
+        if (!GoogleOAuth::verifyState($state)) {
+            $this->setFlash('error', 'Phiên đăng nhập không hợp lệ. Vui lòng thử lại.');
+            $this->redirect('auth/login');
+        }
+
+        // Đổi code lấy access token
+        $tokenData = GoogleOAuth::getAccessToken($code);
+        if (!$tokenData) {
+            $this->setFlash('error', 'Không thể kết nối với Google. Vui lòng thử lại.');
+            $this->redirect('auth/login');
+        }
+
+        // Lấy thông tin user từ Google
+        $googleUser = GoogleOAuth::getUserInfo($tokenData['access_token']);
+        if (!$googleUser || empty($googleUser['email'])) {
+            $this->setFlash('error', 'Không thể lấy thông tin từ Google. Vui lòng thử lại.');
+            $this->redirect('auth/login');
+        }
+
+        // Tìm hoặc tạo user
+        $userModel = $this->model('User');
+        $user = $userModel->findOrCreateByGoogle($googleUser);
+
+        if (!$user) {
+            $this->setFlash('error', 'Có lỗi xảy ra khi tạo tài khoản. Vui lòng thử lại.');
+            $this->redirect('auth/login');
+        }
+
+        // Đăng nhập
+        $_SESSION['user_id']   = $user['id'];
+        $_SESSION['username']  = $user['username'];
+        $_SESSION['full_name'] = $user['full_name'];
+        $_SESSION['email']     = $user['email'];
+        $_SESSION['user_role'] = $user['role'];
+        $_SESSION['avatar']    = $user['avatar'];
+        $_SESSION['membership'] = $user['membership'] ?? 'free';
+        $_SESSION['membership_expired_at'] = $user['membership_expired_at'] ?? null;
+
+        $this->setFlash('success', 'Đăng nhập Google thành công! Chào mừng ' . $user['full_name']);
+        $this->redirect('');
+    }
 }

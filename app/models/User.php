@@ -86,4 +86,60 @@ class User extends Model {
             'password_hash' => password_hash($newPassword, PASSWORD_DEFAULT)
         ]);
     }
+
+    /**
+     * Tìm hoặc tạo user từ Google OAuth
+     * @param array $googleUser {email, name, picture, id}
+     * @return array|false User data
+     */
+    public function findOrCreateByGoogle($googleUser) {
+        $email = $googleUser['email'];
+        
+        // Tìm user đã tồn tại bằng email
+        $user = $this->findBy('email', $email);
+        if ($user) {
+            // Cập nhật avatar từ Google nếu đang dùng default
+            if ($user['avatar'] === 'default.png' && !empty($googleUser['picture'])) {
+                $this->update($user['id'], ['avatar' => $googleUser['picture']]);
+                $user['avatar'] = $googleUser['picture'];
+            }
+            return $user;
+        }
+
+        // Tạo user mới
+        $fullName = $googleUser['name'] ?? explode('@', $email)[0];
+        $username = $this->generateUniqueUsername($email);
+        $randomPassword = bin2hex(random_bytes(16)); // Random password (user dùng Google login)
+
+        try {
+            $userId = $this->create([
+                'username'      => $username,
+                'email'         => $email,
+                'password_hash' => password_hash($randomPassword, PASSWORD_DEFAULT),
+                'full_name'     => $fullName,
+                'avatar'        => $googleUser['picture'] ?? 'default.png'
+            ]);
+            return $this->find($userId);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tạo username duy nhất từ email
+     * @param string $email
+     * @return string
+     */
+    private function generateUniqueUsername($email) {
+        $base = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', explode('@', $email)[0]));
+        if (strlen($base) < 3) $base = 'user' . $base;
+        
+        $username = $base;
+        $counter = 1;
+        while ($this->usernameExists($username)) {
+            $username = $base . $counter;
+            $counter++;
+        }
+        return $username;
+    }
 }
