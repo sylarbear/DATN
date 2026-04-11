@@ -9,6 +9,7 @@
             <a href="<?= BASE_URL ?>/admin/topics" class="admin-nav-item"><i class="fas fa-book"></i> Chủ đề</a>
             <a href="<?= BASE_URL ?>/admin/questions" class="admin-nav-item active"><i class="fas fa-question-circle"></i> Câu hỏi</a>
             <a href="<?= BASE_URL ?>/admin/codes" class="admin-nav-item"><i class="fas fa-key"></i> Mã kích hoạt</a>
+            <a href="<?= BASE_URL ?>/admin/orders" class="admin-nav-item"><i class="fas fa-file-invoice-dollar"></i> Đơn nâng cấp</a>
             <a href="<?= BASE_URL ?>/admin/settings" class="admin-nav-item"><i class="fas fa-cog"></i> Cài đặt</a>
         </div>
     </div>
@@ -24,7 +25,7 @@
                     <option value="">-- Chọn bài test --</option>
                     <?php foreach ($tests as $t): ?>
                         <option value="<?= $t['id'] ?>" <?= $testId == $t['id'] ? 'selected' : '' ?>>
-                            [<?= ucfirst($t['test_type']) ?>] <?= htmlspecialchars($t['title']) ?> (<?= $t['topic_name'] ?>)
+                            [<?= ucfirst($t['test_type']) ?>] <?= htmlspecialchars($t['title']) ?> (<?= htmlspecialchars($t['topic_name']) ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -43,7 +44,11 @@
                     <thead><tr><th>#</th><th>Câu hỏi</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Đáp án</th><th>Thao tác</th></tr></thead>
                     <tbody>
                     <?php foreach ($questions as $i => $q):
-                        $opts = json_decode($q['options'], true);
+                        $opts = json_decode($q['options_json'], true);
+                        // Normalize: convert array format [0,1,2,3] to {A,B,C,D}
+                        if ($opts && isset($opts[0])) {
+                            $opts = ['A' => $opts[0] ?? '', 'B' => $opts[1] ?? '', 'C' => $opts[2] ?? '', 'D' => $opts[3] ?? ''];
+                        }
                     ?>
                         <tr>
                             <td><?= $i+1 ?></td>
@@ -52,9 +57,9 @@
                             <td><?= htmlspecialchars(mb_substr($opts['B']??'',0,20)) ?></td>
                             <td><?= htmlspecialchars(mb_substr($opts['C']??'',0,20)) ?></td>
                             <td><?= htmlspecialchars(mb_substr($opts['D']??'',0,20)) ?></td>
-                            <td><span class="answer-badge correct"><?= $q['correct_answer'] ?></span></td>
+                            <td><span class="answer-badge correct"><?= htmlspecialchars($q['correct_answer']) ?></span></td>
                             <td style="white-space:nowrap;">
-                                <button class="btn btn-sm btn-outline" onclick='editQuestion(<?= json_encode($q) ?>)'><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-outline" onclick='editQuestion(<?= htmlspecialchars(json_encode($q), ENT_QUOTES, "UTF-8") ?>)'><i class="fas fa-edit"></i></button>
                                 <button class="btn btn-sm" style="background:var(--error);color:white;" onclick="deleteQuestion(<?= $q['id'] ?>)"><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>
@@ -104,7 +109,11 @@ function showQuestionModal() {
     document.getElementById('questionModal').classList.add('active');
 }
 function editQuestion(q) {
-    const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+    let opts = typeof q.options_json === 'string' ? JSON.parse(q.options_json) : (q.options_json || {});
+    // Normalize array format to {A,B,C,D}
+    if (Array.isArray(opts)) {
+        opts = {A: opts[0]||'', B: opts[1]||'', C: opts[2]||'', D: opts[3]||''};
+    }
     document.getElementById('qModalTitle').textContent = 'Sửa câu hỏi #' + q.id;
     document.getElementById('qId').value = q.id;
     document.getElementById('qText').value = q.question_text;

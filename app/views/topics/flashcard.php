@@ -94,6 +94,7 @@ function markCard(isKnown) {
 }
 
 function speakWord() {
+    speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(deck[currentIndex].word);
     utterance.lang = 'en-US';
     speechSynthesis.speak(utterance);
@@ -110,9 +111,9 @@ function showResult() {
     // Award XP for completing flashcard session
     fetch('<?= BASE_URL ?>/topic/learnVocab', {
         method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        headers: {'Content-Type': 'application/json'},
         credentials: 'same-origin',
-        body: 'topic_id=<?= $topic['id'] ?>'
+        body: JSON.stringify({topic_id: <?= $topic['id'] ?>})
     }).catch(() => {});
 }
 

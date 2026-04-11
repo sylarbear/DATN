@@ -25,16 +25,17 @@ class BookmarkController extends Controller {
 
         $this->view('bookmark/index', [
             'title' => 'Từ vựng đã lưu - ' . APP_NAME,
-            'bookmarks' => $bookmarks
+            'bookmarks' => $bookmarks,
+            'user' => Middleware::user()
         ]);
     }
 
     /** Toggle bookmark (AJAX) */
     public function toggle() {
-        if (!$this->isMethod('POST')) $this->json(['error' => 'Method not allowed'], 405);
+        if (!$this->isMethod('POST')) return $this->json(['error' => 'Method not allowed'], 405);
         $input = json_decode(file_get_contents('php://input'), true);
         $vocabId = intval($input['vocabulary_id'] ?? 0);
-        if (!$vocabId) $this->json(['error' => 'Invalid'], 400);
+        if (!$vocabId) return $this->json(['error' => 'Invalid'], 400);
 
         $db = getDB();
         $stmt = $db->prepare("SELECT id FROM bookmarks WHERE user_id=:uid AND vocabulary_id=:vid");
@@ -43,22 +44,25 @@ class BookmarkController extends Controller {
 
         if ($exists) {
             $db->prepare("DELETE FROM bookmarks WHERE id=:id")->execute(['id' => $exists['id']]);
-            $this->json(['success' => true, 'bookmarked' => false]);
+            return $this->json(['success' => true, 'bookmarked' => false]);
         } else {
-            $note = $input['note'] ?? '';
+            $note = trim($input['note'] ?? '');
             $db->prepare("INSERT INTO bookmarks (user_id, vocabulary_id, note) VALUES (:uid,:vid,:note)")
                ->execute(['uid' => $_SESSION['user_id'], 'vid' => $vocabId, 'note' => $note]);
-            $this->json(['success' => true, 'bookmarked' => true]);
+            return $this->json(['success' => true, 'bookmarked' => true]);
         }
     }
 
     /** Cập nhật ghi chú (AJAX) */
     public function updateNote() {
-        if (!$this->isMethod('POST')) $this->json(['error' => 'Method not allowed'], 405);
+        if (!$this->isMethod('POST')) return $this->json(['error' => 'Method not allowed'], 405);
         $input = json_decode(file_get_contents('php://input'), true);
+        $note = trim($input['note'] ?? '');
+        $vocabId = intval($input['vocabulary_id'] ?? 0);
+        if (!$vocabId) return $this->json(['error' => 'Invalid vocabulary_id'], 400);
         $db = getDB();
         $db->prepare("UPDATE bookmarks SET note=:note WHERE user_id=:uid AND vocabulary_id=:vid")
-           ->execute(['note' => $input['note'] ?? '', 'uid' => $_SESSION['user_id'], 'vid' => $input['vocabulary_id']]);
-        $this->json(['success' => true]);
+           ->execute(['note' => $note, 'uid' => $_SESSION['user_id'], 'vid' => $vocabId]);
+        return $this->json(['success' => true]);
     }
 }

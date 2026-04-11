@@ -9,6 +9,7 @@
             <a href="<?= BASE_URL ?>/admin/topics" class="admin-nav-item"><i class="fas fa-book"></i> Chủ đề</a>
             <a href="<?= BASE_URL ?>/admin/questions" class="admin-nav-item"><i class="fas fa-question-circle"></i> Câu hỏi</a>
             <a href="<?= BASE_URL ?>/admin/codes" class="admin-nav-item active"><i class="fas fa-key"></i> Mã kích hoạt</a>
+            <a href="<?= BASE_URL ?>/admin/orders" class="admin-nav-item"><i class="fas fa-file-invoice-dollar"></i> Đơn nâng cấp</a>
             <a href="<?= BASE_URL ?>/admin/settings" class="admin-nav-item"><i class="fas fa-cog"></i> Cài đặt</a>
         </div>
     </div>
@@ -71,7 +72,7 @@ function createCode() {
         body: JSON.stringify({ code: code, plan_id: document.getElementById('newPlanId').value })
     }).then(r=>r.json()).then(d => {
         if(d.success) { location.reload(); } 
-        else { document.getElementById('createResult').innerHTML='<span style="color:var(--error);">'+d.error+'</span>'; }
+        else { const errEl = document.getElementById('createResult'); errEl.innerHTML='<span style="color:var(--error);"></span>'; errEl.querySelector('span').textContent=d.error; }
     });
 }
 function deleteCode(id) {

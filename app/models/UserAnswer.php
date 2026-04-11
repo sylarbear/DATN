@@ -28,12 +28,21 @@ class UserAnswer extends Model {
             $totalPoints += $q['points'];
             $userAnswer = $answers[$q['id']] ?? '';
             
+            // Normalize correct_answer for object-format options {"A":"..","B":".."}
+            $correctAnswer = $q['correct_answer'];
+            if ($q['options_json']) {
+                $parsed = json_decode($q['options_json'], true);
+                if ($parsed && isset($parsed['A']) && isset($parsed[$correctAnswer])) {
+                    $correctAnswer = $parsed[$correctAnswer];
+                }
+            }
+            
             // So sánh đáp án (không phân biệt hoa thường cho fill_blank)
             $isCorrect = false;
             if ($q['question_type'] === 'fill_blank') {
-                $isCorrect = strtolower(trim($userAnswer)) === strtolower(trim($q['correct_answer']));
+                $isCorrect = strtolower(trim($userAnswer)) === strtolower(trim($correctAnswer));
             } else {
-                $isCorrect = trim($userAnswer) === trim($q['correct_answer']);
+                $isCorrect = trim($userAnswer) === trim($correctAnswer);
             }
 
             if ($isCorrect) {
@@ -61,10 +70,13 @@ class UserAnswer extends Model {
         ]);
         $resultId = $this->db->lastInsertId();
 
-        // Award XP for completing test
+        // Award XP for completing test (only if score >= 30%)
+        $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100) : 0;
         require_once APP_PATH . '/core/StreakService.php';
         StreakService::updateStreak($userId);
-        StreakService::addXP($userId, 50, 'test_complete', 'Hoàn thành bài test');
+        if ($percentage >= 30) {
+            StreakService::addXP($userId, 50, 'test_complete', "Hoàn thành bài test ({$percentage}%)");
+        }
 
         // Lưu chi tiết từng câu
         $stmt = $this->db->prepare("
@@ -108,7 +120,16 @@ class UserAnswer extends Model {
 
         foreach ($details as &$d) {
             if ($d['options_json']) {
-                $d['options'] = json_decode($d['options_json'], true);
+                $parsed = json_decode($d['options_json'], true);
+                // Normalize object format and resolve correct_answer
+                if ($parsed && isset($parsed['A'])) {
+                    if (isset($parsed[$d['correct_answer']])) {
+                        $d['correct_answer'] = $parsed[$d['correct_answer']];
+                    }
+                    $d['options'] = array_values($parsed);
+                } else {
+                    $d['options'] = $parsed ?: [];
+                }
             }
         }
 

@@ -97,7 +97,7 @@
                                         <strong><?= htmlspecialchars($t['title']) ?></strong>
                                         <small><?= date('d/m/Y H:i', strtotime($t['completed_at'])) ?></small>
                                     </div>
-                                    <span class="activity-score" style="color:<?= $t['score']>=70?'var(--success)':'var(--error)' ?>"><?= $t['score'] ?>%</span>
+                                    <span class="activity-score" style="color:<?= $t['percentage']>=70?'var(--success)':'var(--error)' ?>"><?= $t['percentage'] ?>%</span>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -121,7 +121,7 @@ function updateProfile() {
 function changePassword() {
     const newPw = document.getElementById('newPw').value;
     if(newPw !== document.getElementById('confirmPw').value) { showToast('Mật khẩu mới không khớp','error'); return; }
-    if(newPw.length < 4) { showToast('Mật khẩu mới phải ≥ 4 ký tự','error'); return; }
+    if(newPw.length < 6) { showToast('Mật khẩu mới phải ≥ 6 ký tự','error'); return; }
     fetch('<?= BASE_URL ?>/profile/changePassword', {
         method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
         body: JSON.stringify({ current_password: document.getElementById('currentPw').value, new_password: newPw })
@@ -133,7 +133,9 @@ function changePassword() {
 function showToast(msg, type) {
     const t = document.createElement('div');
     t.className = 'flash-message flash-' + type;
-    t.innerHTML = '<div class="flash-content"><i class="fas fa-'+(type==='success'?'check':'exclamation')+'-circle"></i><span>'+msg+'</span></div>';
+    const icon = type === 'success' ? 'check' : 'exclamation';
+    t.innerHTML = '<div class="flash-content"><i class="fas fa-' + icon + '-circle"></i><span></span></div>';
+    t.querySelector('span').textContent = msg;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
 }

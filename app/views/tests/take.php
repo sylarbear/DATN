@@ -41,7 +41,7 @@
                     <?php if (!empty($q['audio_url'])): ?>
                         <div class="listening-audio">
                             <audio controls>
-                                <source src="<?= $q['audio_url'] ?>" type="audio/mpeg">
+                                <source src="<?= htmlspecialchars($q['audio_url']) ?>" type="audio/mpeg">
                             </audio>
                         </div>
                     <?php endif; ?>

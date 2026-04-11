@@ -14,9 +14,9 @@ class LeaderboardController extends Controller {
         
         // Top users by total score and tests completed
         $leaders = $db->query("
-            SELECT u.id, u.username, u.full_name, u.membership,
+            SELECT u.id, u.username, u.full_name, u.avatar, u.membership,
                 COUNT(ta.id) as total_tests,
-                ROUND(AVG(ta.score), 1) as avg_score,
+                ROUND(AVG(CASE WHEN ta.total_points > 0 THEN (ta.score/ta.total_points)*100 ELSE 0 END), 1) as avg_score,
                 SUM(ta.score) as total_score,
                 MAX(ta.score) as best_score
             FROM users u
@@ -40,7 +40,8 @@ class LeaderboardController extends Controller {
         $this->view('leaderboard/index', [
             'title' => 'Bảng xếp hạng - ' . APP_NAME,
             'leaders' => $leaders,
-            'myRank' => $myRank
+            'myRank' => $myRank,
+            'user' => Middleware::user()
         ]);
     }
 }

@@ -60,8 +60,8 @@
         <h2 style="text-align:center; margin-bottom:2rem;"><i class="fas fa-tags"></i> Bảng giá</h2>
         <div class="pricing-grid">
             <?php foreach ($plans as $plan): ?>
-            <div class="pricing-card <?= $plan['is_popular'] ? 'popular' : '' ?>">
-                <?php if ($plan['is_popular']): ?>
+            <div class="pricing-card <?= !empty($plan['is_popular']) ? 'popular' : '' ?>">
+                <?php if (!empty($plan['is_popular'])): ?>
                     <div class="popular-badge">PHỔ BIẾN NHẤT</div>
                 <?php endif; ?>
                 <div class="pricing-header">
@@ -70,14 +70,16 @@
                         <span class="price-amount"><?= number_format($plan['price']) ?></span>
                         <span class="price-currency">VNĐ</span>
                     </div>
-                    <p class="pricing-desc"><?= htmlspecialchars($plan['description']) ?></p>
+                    <p class="pricing-desc"><?= htmlspecialchars($plan['description'] ?? '') ?></p>
                 </div>
                 <div class="pricing-features">
-                    <?php foreach (explode('|', $plan['features']) as $feature): ?>
+                    <?php foreach (explode('|', $plan['features'] ?? '') as $feature): ?>
+                        <?php if (trim($feature) !== ''): ?>
                         <div class="feature-item">
                             <i class="fas fa-check-circle"></i>
                             <span><?= htmlspecialchars($feature) ?></span>
                         </div>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
                 <div class="pricing-footer">
@@ -116,25 +118,49 @@
             <h3><i class="fas fa-history"></i> Lịch sử nâng cấp</h3>
             <div class="progress-table">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Gói</th>
-                            <th>Mã</th>
-                            <th>Ngày kích hoạt</th>
-                            <th>Hết hạn</th>
-                            <th>Trạng thái</th>
-                        </tr>
-                    </thead>
+                    <thead><tr>
+                        <th>Gói</th>
+                        <th>Mã</th>
+                        <th>Ngày kích hoạt</th>
+                        <th>Hết hạn</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr></thead>
                     <tbody>
-                        <?php foreach ($orders as $order): ?>
+                    <?php foreach ($orders as $order): ?>
+                        <?php
+                            $statusLabels = ['pending'=>'Đang chờ','completed'=>'Hoàn tất','cancelled'=>'Đã hủy'];
+                            $statusColors = ['pending'=>'#f59e0b','completed'=>'#10b981','cancelled'=>'#ef4444'];
+                            $status = $order['status'] ?? 'completed';
+                        ?>
                         <tr>
-                            <td><?= htmlspecialchars($order['plan_name']) ?></td>
-                            <td><code><?= htmlspecialchars($order['activation_code']) ?></code></td>
+                            <td><?= htmlspecialchars($order['plan_name'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($order['activation_code'] ?? '–') ?></td>
                             <td><?= date('d/m/Y H:i', strtotime($order['activated_at'])) ?></td>
                             <td><?= date('d/m/Y', strtotime($order['expired_at'])) ?></td>
-                            <td><span class="answer-badge correct">Hoàn tất</span></td>
+                            <td><span style="background:<?= $statusColors[$status] ?? '#999' ?>20; color:<?= $statusColors[$status] ?? '#999' ?>; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:600;"><?= $statusLabels[$status] ?? $status ?></span></td>
+                            <td>
+                            <?php if ($status === 'pending'):
+                                // Check cancel eligibility
+                                require_once APP_PATH . '/controllers/SupportController.php';
+                                $eligibility = SupportController::checkCancelEligibility($order, $order);
+                                if ($eligibility['can_cancel']): ?>
+                                    <a href="<?= BASE_URL ?>/support/create?type=cancel_order&order_id=<?= $order['id'] ?>"
+                                       class="btn" style="padding:3px 10px; font-size:0.75rem; background:#ef4444; color:white;"
+                                       title="<?= htmlspecialchars($eligibility['policy_note']) ?>">
+                                        <i class="fas fa-times-circle"></i> Hủy đơn (<?= $eligibility['refund_percent'] ?>%)
+                                    </a>
+                                <?php else: ?>
+                                    <span style="color:var(--text-muted); font-size:0.75rem;" title="<?= htmlspecialchars($eligibility['policy_note']) ?>">
+                                        <i class="fas fa-lock"></i> Hết hạn hủy
+                                    </span>
+                                <?php endif;
+                            else: ?>
+                                –
+                            <?php endif; ?>
+                            </td>
                         </tr>
-                        <?php endforeach; ?>
+                    <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -143,65 +169,43 @@
 </section>
 <?php endif; ?>
 
-<!-- Payment Modal -->
+<!-- Payment Modal (Wallet-based) -->
 <div class="modal" id="paymentModal">
     <div class="modal-overlay" onclick="closePayment()"></div>
-    <div class="modal-content" style="max-width:550px;">
-        <div class="modal-header">
-            <h2 id="paymentTitle">Thanh toán</h2>
+    <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 id="paymentTitle"><i class="fas fa-wallet"></i> Thanh toán</h2>
+            <button onclick="closePayment()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">&times;</button>
         </div>
-        <div class="payment-body">
-            <!-- Step 1: Choose method -->
-            <div id="paymentStep1">
-                <div class="payment-summary">
-                    <div class="payment-plan-name" id="paymentPlanName"></div>
-                    <div class="payment-amount" id="paymentAmount"></div>
-                </div>
-                <h4 style="margin:1.5rem 0 1rem;">Chọn phương thức thanh toán:</h4>
-                <div class="payment-methods">
-                    <div class="payment-method" onclick="selectPayment('bank')">
-                        <i class="fas fa-university"></i>
-                        <span>Chuyển khoản ngân hàng</span>
-                    </div>
-                    <div class="payment-method" onclick="selectPayment('momo')">
-                        <i class="fas fa-wallet"></i>
-                        <span>Ví MoMo</span>
-                    </div>
-                    <div class="payment-method" onclick="selectPayment('qr')">
-                        <i class="fas fa-qrcode"></i>
-                        <span>Quét mã QR</span>
-                    </div>
-                </div>
+        <div class="payment-body" style="padding:1.5rem;">
+            <!-- Plan info -->
+            <div style="text-align:center; padding:1.25rem; background:linear-gradient(135deg, rgba(99,102,241,0.05), rgba(139,92,246,0.08)); border-radius:var(--radius-sm); margin-bottom:1.5rem;">
+                <h3 style="margin:0 0 0.25rem;" id="paymentPlanName"></h3>
+                <div style="font-size:1.8rem; font-weight:800; color:var(--primary);" id="paymentAmount"></div>
             </div>
-            <!-- Step 2: Payment details -->
-            <div id="paymentStep2" style="display:none;">
-                <div class="qr-payment-area">
-                    <div class="qr-code-wrapper">
-                        <img src="<?= BASE_URL ?>/images/qr_payment.png" alt="QR Code Thanh toán" class="qr-image">
-                    </div>
-                    <div class="bank-info">
-                        <div class="bank-detail"><strong>Ngân hàng:</strong> Vietcombank</div>
-                        <div class="bank-detail"><strong>Số TK:</strong> 1234 5678 9012</div>
-                        <div class="bank-detail"><strong>Chủ TK:</strong> ENGLISH LEARNING</div>
-                        <div class="bank-detail"><strong>Nội dung CK:</strong> <code id="transferNote">EM-PRO-</code></div>
-                        <div class="bank-detail"><strong>Số tiền:</strong> <span id="transferAmount" style="color:var(--accent-green); font-weight:700;"></span></div>
-                    </div>
-                    <div class="payment-note">
-                        <i class="fas fa-info-circle"></i>
-                        Sau khi chuyển khoản, hệ thống sẽ tự động kích hoạt trong vòng <strong>5 phút</strong>.
-                        Hoặc bạn có thể nhập mã kích hoạt bên dưới.
-                    </div>
+
+            <!-- Wallet Balance -->
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:1rem; background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--radius-sm); margin-bottom:1rem;">
+                <div>
+                    <span style="color:var(--text-muted); font-size:0.85rem;"><i class="fas fa-wallet"></i> Số dư ví</span>
+                    <div style="font-size:1.2rem; font-weight:700;" id="walletBalanceDisplay"><?= number_format($user['balance'] ?? 0) ?>đ</div>
                 </div>
-                <div class="activation-form" style="margin-top:1rem;">
-                    <input type="text" id="modalActivationCode" placeholder="Nhập mã kích hoạt" class="input-lg">
+                <div id="balanceStatus"></div>
+            </div>
+
+            <!-- Action area -->
+            <div id="paymentAction"></div>
+
+            <!-- Divider -->
+            <div style="margin:1.5rem 0; padding-top:1.25rem; border-top:1px solid var(--border-color);">
+                <h4 style="margin-bottom:0.75rem;"><i class="fas fa-key"></i> Có mã kích hoạt?</h4>
+                <div class="activation-form">
+                    <input type="text" id="modalActivationCode" placeholder="Nhập mã kích hoạt" class="input-lg" autocomplete="off">
                     <button class="btn btn-primary btn-lg" onclick="activateFromModal()">
                         <i class="fas fa-bolt"></i> Kích hoạt
                     </button>
                 </div>
                 <div id="modalResult" style="margin-top:0.5rem;"></div>
-                <button class="btn btn-outline" style="margin-top:1rem; width:100%;" onclick="backToStep1()">
-                    <i class="fas fa-arrow-left"></i> Quay lại
-                </button>
             </div>
         </div>
     </div>
@@ -210,14 +214,50 @@
 <script>
 let selectedPlanId = null;
 let selectedPlanPrice = 0;
+const userBalance = <?= intval($user['balance'] ?? 0) ?>;
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
 
 function showPayment(planId, planName, price) {
     selectedPlanId = planId;
     selectedPlanPrice = price;
     document.getElementById('paymentPlanName').textContent = planName;
     document.getElementById('paymentAmount').textContent = new Intl.NumberFormat('vi-VN').format(price) + ' VNĐ';
-    document.getElementById('paymentStep1').style.display = 'block';
-    document.getElementById('paymentStep2').style.display = 'none';
+    
+    const actionEl = document.getElementById('paymentAction');
+    const statusEl = document.getElementById('balanceStatus');
+    
+    if (userBalance >= price) {
+        statusEl.innerHTML = '<span style="background:#dcfce7; color:#16a34a; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:600;"><i class="fas fa-check-circle"></i> Đủ tiền</span>';
+        const remaining = userBalance - price;
+        actionEl.innerHTML = `
+            <div style="text-align:center; margin-bottom:0.75rem; font-size:0.85rem; color:var(--text-muted);">
+                Sau khi mua, số dư còn lại: <strong>${new Intl.NumberFormat('vi-VN').format(remaining)}đ</strong>
+            </div>
+            <button class="btn btn-primary btn-lg" style="width:100%; padding:14px; font-size:1rem;" id="buyBtn" onclick="buyWithWallet()">
+                <i class="fas fa-shopping-cart"></i> Thanh toán bằng ví
+            </button>
+            <div id="buyResult" style="margin-top:0.75rem;"></div>
+        `;
+    } else {
+        const shortage = price - userBalance;
+        statusEl.innerHTML = '<span style="background:#fef2f2; color:#ef4444; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:600;"><i class="fas fa-times-circle"></i> Thiếu tiền</span>';
+        actionEl.innerHTML = `
+            <div style="text-align:center; padding:1rem; background:#fef3c7; border-radius:var(--radius-sm); margin-bottom:0.75rem;">
+                <p style="margin:0; color:#92400e; font-size:0.9rem;">
+                    <i class="fas fa-exclamation-triangle"></i> Ví không đủ. Cần nạp thêm <strong>${new Intl.NumberFormat('vi-VN').format(shortage)}đ</strong>
+                </p>
+            </div>
+            <a href="<?= BASE_URL ?>/wallet/deposit" class="btn btn-primary btn-lg" style="width:100%; padding:14px; font-size:1rem; text-decoration:none; display:block; text-align:center;">
+                <i class="fas fa-plus-circle"></i> Nạp tiền vào ví
+            </a>
+        `;
+    }
+    
     document.getElementById('paymentModal').classList.add('active');
 }
 
@@ -225,16 +265,66 @@ function closePayment() {
     document.getElementById('paymentModal').classList.remove('active');
 }
 
-function selectPayment(method) {
-    document.getElementById('paymentStep1').style.display = 'none';
-    document.getElementById('paymentStep2').style.display = 'block';
-    document.getElementById('transferNote').textContent = 'EM-PRO-<?= $_SESSION['user_id'] ?? 0 ?>';
-    document.getElementById('transferAmount').textContent = new Intl.NumberFormat('vi-VN').format(selectedPlanPrice) + ' VNĐ';
+function buyWithWallet() {
+    const btn = document.getElementById('buyBtn');
+    const resultEl = document.getElementById('buyResult');
+    
+    if (!confirm('Xác nhận thanh toán ' + new Intl.NumberFormat('vi-VN').format(selectedPlanPrice) + 'đ từ ví?')) return;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+    
+    fetch('<?= BASE_URL ?>/membership/createOrder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ plan_id: selectedPlanId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            resultEl.innerHTML = `
+                <div style="background:rgba(67,233,123,0.1); border:1px solid var(--success); border-radius:var(--radius-sm); padding:1.5rem; text-align:center;">
+                    <i class="fas fa-crown fa-3x" style="color:#f59e0b; margin-bottom:0.75rem;"></i>
+                    <h3 style="margin:0 0 0.5rem; color:var(--success);">${escapeHtml(data.message)}</h3>
+                    <p style="color:var(--text-muted);">Hết hạn: ${escapeHtml(data.expired_at)}</p>
+                    <p style="color:var(--text-muted); font-size:0.85rem;">Số dư ví còn: ${new Intl.NumberFormat('vi-VN').format(data.new_balance)}đ</p>
+                    <button class="btn btn-primary" onclick="location.reload()" style="margin-top:0.75rem;">
+                        <i class="fas fa-crown"></i> Bắt đầu dùng Pro
+                    </button>
+                </div>
+            `;
+            btn.style.display = 'none';
+        } else {
+            if (data.need_deposit) {
+                resultEl.innerHTML = `
+                    <div style="color:var(--error); margin-bottom:0.5rem;"><i class="fas fa-exclamation-circle"></i> <span>${escapeHtml(data.error)}</span></div>
+                    <a href="<?= BASE_URL ?>/wallet/deposit" class="btn btn-outline" style="width:100%; text-decoration:none; display:block; text-align:center;">
+                        <i class="fas fa-plus-circle"></i> Nạp tiền ngay
+                    </a>
+                `;
+            } else {
+                resultEl.innerHTML = '<div style="color:var(--error);"><i class="fas fa-exclamation-circle"></i> <span>' + escapeHtml(data.error) + '</span></div>';
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Thanh toán bằng ví';
+        }
+    })
+    .catch(err => {
+        resultEl.innerHTML = '<div style="color:var(--error);"><i class="fas fa-exclamation-circle"></i> Lỗi kết nối.</div>';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Thanh toán bằng ví';
+    });
 }
 
-function backToStep1() {
-    document.getElementById('paymentStep1').style.display = 'block';
-    document.getElementById('paymentStep2').style.display = 'none';
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 24px; border-radius:8px; z-index:99999; font-size:0.9rem;';
+    toast.innerHTML = '<i class="fas fa-check-circle" style="color:#43e97b; margin-right:6px;"></i><span></span>';
+    toast.querySelector('span').textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; }, 2000);
+    setTimeout(() => toast.remove(), 2500);
 }
 
 function activateCode() {
@@ -253,10 +343,7 @@ function doActivate(code, resultId, btnId) {
     const resultEl = document.getElementById(resultId);
     resultEl.innerHTML = '<div style="color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Đang xử lý...</div>';
 
-    if (btnId) {
-        const btn = document.getElementById(btnId);
-        btn.disabled = true;
-    }
+    if (btnId) document.getElementById(btnId).disabled = true;
 
     fetch('<?= BASE_URL ?>/membership/activate', {
         method: 'POST',
@@ -270,20 +357,20 @@ function doActivate(code, resultId, btnId) {
             resultEl.innerHTML = `
                 <div style="background:rgba(67,233,123,0.1); border:1px solid var(--success); border-radius:var(--radius-sm); padding:1rem; text-align:center;">
                     <i class="fas fa-check-circle fa-2x" style="color:var(--success);"></i>
-                    <h4 style="margin:0.5rem 0;">${data.message}</h4>
-                    <p>Hết hạn: ${data.expired_at}</p>
+                    <h4 style="margin:0.5rem 0;">${escapeHtml(data.message)}</h4>
+                    <p>Hết hạn: ${escapeHtml(data.expired_at)}</p>
                     <button class="btn btn-primary" onclick="location.reload()" style="margin-top:0.5rem;">
                         <i class="fas fa-sync"></i> Tải lại trang
                     </button>
                 </div>
             `;
         } else {
-            resultEl.innerHTML = '<div style="color:var(--error);"><i class="fas fa-exclamation-circle"></i> ' + data.error + '</div>';
+            resultEl.innerHTML = '<div style="color:var(--error);"><i class="fas fa-exclamation-circle"></i> <span>' + escapeHtml(data.error) + '</span></div>';
         }
         if (btnId) document.getElementById(btnId).disabled = false;
     })
     .catch(err => {
-        resultEl.innerHTML = '<div style="color:var(--error);"><i class="fas fa-exclamation-circle"></i> Lỗi kết nối. Thử lại.</div>';
+        resultEl.innerHTML = '<div style="color:var(--error);"><i class="fas fa-exclamation-circle"></i> Lỗi kết nối.</div>';
         if (btnId) document.getElementById(btnId).disabled = false;
     });
 }

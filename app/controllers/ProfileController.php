@@ -25,7 +25,7 @@ class ProfileController extends Controller {
         $stats['total_tests']->execute(['id' => $userId]);
         $stats['total_tests'] = $stats['total_tests']->fetchColumn();
 
-        $stats['avg_score'] = $db->prepare("SELECT ROUND(AVG(score),1) FROM test_results WHERE user_id=:id");
+        $stats['avg_score'] = $db->prepare("SELECT ROUND(AVG(CASE WHEN total_points > 0 THEN (score/total_points)*100 ELSE 0 END), 1) FROM test_results WHERE user_id=:id");
         $stats['avg_score']->execute(['id' => $userId]);
         $stats['avg_score'] = $stats['avg_score']->fetchColumn() ?: 0;
 
@@ -42,7 +42,8 @@ class ProfileController extends Controller {
 
         // Recent activity
         $recent = $db->prepare("
-            SELECT ta.score, ta.completed_at, t.title, t.test_type
+            SELECT ta.score, ta.total_points, ta.completed_at, t.title, t.test_type,
+                   CASE WHEN ta.total_points > 0 THEN ROUND((ta.score/ta.total_points)*100) ELSE 0 END as percentage
             FROM test_results ta JOIN tests t ON ta.test_id=t.id
             WHERE ta.user_id=:id ORDER BY ta.completed_at DESC LIMIT 10
         ");
@@ -60,41 +61,68 @@ class ProfileController extends Controller {
 
     /** Update profile (AJAX) */
     public function update() {
-        if (!$this->isMethod('POST')) $this->json(['error' => 'Method not allowed'], 405);
+        if (!$this->isMethod('POST')) return $this->json(['error' => 'Method not allowed'], 405);
         $input = json_decode(file_get_contents('php://input'), true);
+        
+        $fullName = trim($input['full_name'] ?? '');
+        $email = trim($input['email'] ?? '');
+
+        if (empty($fullName)) {
+            return $this->json(['error' => 'Họ tên không được để trống'], 400);
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->json(['error' => 'Email không hợp lệ'], 400);
+        }
+
         $db = getDB();
+
+        // Kiểm tra email đã được dùng bởi user khác chưa
+        $emailCheck = $db->prepare("SELECT id FROM users WHERE email=:email AND id!=:id");
+        $emailCheck->execute(['email' => $email, 'id' => $_SESSION['user_id']]);
+        if ($emailCheck->fetch()) {
+            return $this->json(['error' => 'Email này đã được sử dụng bởi tài khoản khác'], 400);
+        }
         
         $stmt = $db->prepare("UPDATE users SET full_name=:name, email=:email WHERE id=:id");
         $stmt->execute([
-            'name' => $input['full_name'],
-            'email' => $input['email'],
+            'name' => $fullName,
+            'email' => $email,
             'id' => $_SESSION['user_id']
         ]);
         
-        $_SESSION['full_name'] = $input['full_name'];
-        $_SESSION['email'] = $input['email'];
+        $_SESSION['full_name'] = $fullName;
+        $_SESSION['email'] = $email;
         
-        $this->json(['success' => true, 'message' => 'Cập nhật thành công']);
+        return $this->json(['success' => true, 'message' => 'Cập nhật thành công']);
     }
 
     /** Change password (AJAX) */
     public function changePassword() {
-        if (!$this->isMethod('POST')) $this->json(['error' => 'Method not allowed'], 405);
+        if (!$this->isMethod('POST')) return $this->json(['error' => 'Method not allowed'], 405);
         $input = json_decode(file_get_contents('php://input'), true);
         $db = getDB();
         
-        $stmt = $db->prepare("SELECT password FROM users WHERE id=:id");
+        $stmt = $db->prepare("SELECT password_hash FROM users WHERE id=:id");
         $stmt->execute(['id' => $_SESSION['user_id']]);
         $user = $stmt->fetch();
+        // Google OAuth users may not have a password set
+        $hasPassword = !empty($user['password_hash']);
         
-        if (!password_verify($input['current_password'], $user['password'])) {
-            $this->json(['error' => 'Mật khẩu hiện tại không đúng'], 400);
+        if ($hasPassword && !password_verify($input['current_password'], $user['password_hash'])) {
+            return $this->json(['error' => 'Mật khẩu hiện tại không đúng'], 400);
+        }
+        if (!$hasPassword && !empty($input['current_password'])) {
+            return $this->json(['error' => 'Tài khoản Google chưa có mật khẩu. Để trống mật khẩu hiện tại để đặt mật khẩu mới.'], 400);
+        }
+
+        if (strlen($input['new_password'] ?? '') < 6) {
+            return $this->json(['error' => 'Mật khẩu mới phải có ít nhất 6 ký tự'], 400);
         }
         
         $hash = password_hash($input['new_password'], PASSWORD_DEFAULT);
-        $db->prepare("UPDATE users SET password=:pw WHERE id=:id")->execute(['pw' => $hash, 'id' => $_SESSION['user_id']]);
+        $db->prepare("UPDATE users SET password_hash=:pw WHERE id=:id")->execute(['pw' => $hash, 'id' => $_SESSION['user_id']]);
         
-        $this->json(['success' => true, 'message' => 'Đổi mật khẩu thành công']);
+        return $this->json(['success' => true, 'message' => 'Đổi mật khẩu thành công']);
     }
 
     /** Calculate badges */
@@ -112,7 +140,7 @@ class ProfileController extends Controller {
 
         // Check perfect score
         $db = getDB();
-        $perfect = $db->prepare("SELECT COUNT(*) FROM test_results WHERE user_id=:id AND score=100");
+        $perfect = $db->prepare("SELECT COUNT(*) FROM test_results WHERE user_id=:id AND score = total_points AND total_points > 0");
         $perfect->execute(['id' => $userId]);
         $allBadges[2]['earned'] = $perfect->fetchColumn() > 0;
 

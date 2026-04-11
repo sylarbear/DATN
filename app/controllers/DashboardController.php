@@ -53,6 +53,6 @@ class DashboardController extends Controller {
             $chartData['speaking'][] = $tp['speaking_practiced'];
         }
 
-        $this->json($chartData);
+        return $this->json($chartData);
     }
 }

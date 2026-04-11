@@ -119,8 +119,11 @@ class StreakService {
      */
     public static function getRecentXP($userId, $limit = 10) {
         $db = getDB();
-        $stmt = $db->prepare("SELECT * FROM xp_history WHERE user_id=:id ORDER BY created_at DESC LIMIT $limit");
-        $stmt->execute(['id' => $userId]);
+        $limit = max(1, min(50, intval($limit)));
+        $stmt = $db->prepare("SELECT * FROM xp_history WHERE user_id=:id ORDER BY created_at DESC LIMIT :lim");
+        $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->execute();
         return $stmt->fetchAll();
     }
 }

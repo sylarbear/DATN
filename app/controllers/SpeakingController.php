@@ -44,11 +44,11 @@ class SpeakingController extends Controller {
     public function practice($promptId = null) {
         Middleware::requireLogin();
         Middleware::requirePro();
-        if (!$promptId) $this->redirect('speaking');
+        if (!$promptId) return $this->redirect('speaking');
 
         $speakingModel = $this->model('SpeakingAttempt');
         $prompt = $speakingModel->getPrompt($promptId);
-        if (!$prompt) $this->redirect('speaking');
+        if (!$prompt) return $this->redirect('speaking');
 
         // Lấy lịch sử attempts
         $stmt = getDB()->prepare("
@@ -75,7 +75,7 @@ class SpeakingController extends Controller {
         Middleware::requireLogin();
 
         if (!$this->isMethod('POST')) {
-            $this->json(['error' => 'Method not allowed'], 405);
+            return $this->json(['error' => 'Method not allowed'], 405);
         }
 
         $input = json_decode(file_get_contents('php://input'), true);
@@ -84,14 +84,14 @@ class SpeakingController extends Controller {
         $confidence = floatval($input['confidence'] ?? 0.5);
 
         if (!$promptId || empty($transcript)) {
-            $this->json(['error' => 'Dữ liệu không hợp lệ'], 400);
+            return $this->json(['error' => 'Dữ liệu không hợp lệ'], 400);
         }
 
         $speakingModel = $this->model('SpeakingAttempt');
         $prompt = $speakingModel->getPrompt($promptId);
 
         if (!$prompt) {
-            $this->json(['error' => 'Prompt không tồn tại'], 404);
+            return $this->json(['error' => 'Prompt không tồn tại'], 404);
         }
 
         // Try AI scoring first
@@ -112,16 +112,22 @@ class SpeakingController extends Controller {
         // Lưu attempt
         $attemptId = $speakingModel->saveAttempt($_SESSION['user_id'], $promptId, $transcript, $scores);
 
-        // Cập nhật progress
+        // Cập nhật progress: chỉ increment speaking_practiced nếu chưa luyện prompt này
         $progressModel = $this->model('UserProgress');
-        $progressModel->increment($_SESSION['user_id'], $prompt['topic_id'], 'speaking_practiced');
+        $existingAttempts = getDB()->prepare("SELECT COUNT(*) FROM speaking_attempts WHERE user_id=:uid AND prompt_id=:pid AND id != :aid");
+        $existingAttempts->execute(['uid' => $_SESSION['user_id'], 'pid' => $promptId, 'aid' => $attemptId]);
+        if ($existingAttempts->fetchColumn() == 0) {
+            $progressModel->increment($_SESSION['user_id'], $prompt['topic_id'], 'speaking_practiced');
+        }
         $progressModel->addScore($_SESSION['user_id'], $prompt['topic_id'], $scores['overall_score']);
 
-        // Award XP
+        // Award XP chỉ khi overall_score >= 30
         require_once APP_PATH . '/core/StreakService.php';
-        StreakService::addXP($_SESSION['user_id'], 30, 'speaking_practice', 'Luyện nói');
+        if ($scores['overall_score'] >= 30) {
+            StreakService::addXP($_SESSION['user_id'], 30, 'speaking_practice', 'Luyện nói (' . $scores['overall_score'] . ' điểm)');
+        }
 
-        $this->json([
+        return $this->json([
             'success'    => true,
             'attempt_id' => $attemptId,
             'scores'     => $scores,

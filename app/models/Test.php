@@ -59,7 +59,18 @@ class Test extends Model {
         // Parse JSON options
         foreach ($test['questions'] as &$q) {
             if ($q['options_json']) {
-                $q['options'] = json_decode($q['options_json'], true);
+                $parsed = json_decode($q['options_json'], true);
+                // Normalize: if object format {"A":"opt1","B":"opt2",...}, convert to array
+                // and resolve correct_answer from key ("A") to actual text
+                if ($parsed && isset($parsed['A'])) {
+                    // correct_answer is a key like "A" — resolve to the text value
+                    if (isset($parsed[$q['correct_answer']])) {
+                        $q['correct_answer'] = $parsed[$q['correct_answer']];
+                    }
+                    $q['options'] = array_values($parsed);
+                } else {
+                    $q['options'] = $parsed ?: [];
+                }
             } else {
                 $q['options'] = [];
             }

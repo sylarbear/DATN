@@ -41,13 +41,13 @@
         <!-- Full Ranking -->
         <div class="leaderboard-table">
             <?php foreach ($leaders as $i => $l): ?>
-                <div class="lb-row <?= $l['id'] == $_SESSION['user_id'] ? 'current-user' : '' ?>">
+                <div class="lb-row <?= ($user && $l['id'] == $user['id']) ? 'current-user' : '' ?>">
                     <div class="lb-rank"><?= $i + 1 ?></div>
                     <div class="lb-avatar"><?= mb_substr($l['full_name'] ?? $l['username'], 0, 1) ?></div>
                     <div class="lb-name">
                         <?= htmlspecialchars($l['full_name'] ?? $l['username']) ?>
                         <?php if ($l['membership'] === 'pro'): ?><span class="nav-pro-badge">PRO</span><?php endif; ?>
-                        <?php if ($l['id'] == $_SESSION['user_id']): ?><span style="color:var(--primary); font-size:0.8rem;">(Bạn)</span><?php endif; ?>
+                        <?php if ($user && $l['id'] == $user['id']): ?><span style="color:var(--primary); font-size:0.8rem;">(Bạn)</span><?php endif; ?>
                     </div>
                     <div class="lb-stats">
                         <span><i class="fas fa-star" style="color:var(--accent-orange);"></i> <?= number_format($l['total_score']) ?> pts</span>

@@ -9,6 +9,7 @@
             <a href="<?= BASE_URL ?>/admin/topics" class="admin-nav-item"><i class="fas fa-book"></i> Chủ đề</a>
             <a href="<?= BASE_URL ?>/admin/questions" class="admin-nav-item"><i class="fas fa-question-circle"></i> Câu hỏi</a>
             <a href="<?= BASE_URL ?>/admin/codes" class="admin-nav-item"><i class="fas fa-key"></i> Mã kích hoạt</a>
+            <a href="<?= BASE_URL ?>/admin/orders" class="admin-nav-item"><i class="fas fa-file-invoice-dollar"></i> Đơn nâng cấp</a>
             <a href="<?= BASE_URL ?>/admin/settings" class="admin-nav-item active"><i class="fas fa-cog"></i> Cài đặt</a>
         </div>
     </div>
@@ -83,10 +84,13 @@ function saveApiKey() {
         body: JSON.stringify({ openai_key: key })
     }).then(r=>r.json()).then(d => {
         if(d.success) {
-            document.getElementById('settingsResult').innerHTML = '<div style="color:var(--success);"><i class="fas fa-check-circle"></i> ' + d.message + '</div>';
+            const resEl = document.getElementById('settingsResult');
+            resEl.innerHTML = '<div style="color:var(--success);"><i class="fas fa-check-circle"></i> <span id="settingsOkMsg"></span></div>';
+            document.getElementById('settingsOkMsg').textContent = d.message;
             setTimeout(() => location.reload(), 1500);
         } else {
-            document.getElementById('settingsResult').innerHTML = '<div style="color:var(--error);"><i class="fas fa-times-circle"></i> ' + (d.error || 'Lỗi') + '</div>';
+            document.getElementById('settingsResult').innerHTML = '<div style="color:var(--error);"><i class="fas fa-times-circle"></i> <span id="settingsErrMsg"></span></div>';
+            document.getElementById('settingsErrMsg').textContent = d.error || 'Lỗi';
         }
     });
 }

@@ -42,6 +42,8 @@ class AuthController extends Controller {
         $user = $userModel->authenticate($username, $password);
 
         if ($user) {
+            // Regenerate session ID to prevent session fixation
+            session_regenerate_id(true);
             // Lưu session
             $_SESSION['user_id']   = $user['id'];
             $_SESSION['username']  = $user['username'];
@@ -52,8 +54,17 @@ class AuthController extends Controller {
             $_SESSION['membership'] = $user['membership'] ?? 'free';
             $_SESSION['membership_expired_at'] = $user['membership_expired_at'] ?? null;
 
+            // Auto-downgrade expired Pro in DB
+            if (($_SESSION['membership'] === 'pro') && !empty($_SESSION['membership_expired_at']) 
+                && strtotime($_SESSION['membership_expired_at']) < time()) {
+                $db = getDB();
+                $db->prepare("UPDATE users SET membership = 'free' WHERE id = :id")
+                   ->execute(['id' => $user['id']]);
+                $_SESSION['membership'] = 'free';
+            }
+
             $this->setFlash('success', 'Đăng nhập thành công! Chào mừng ' . $user['full_name']);
-            $this->redirect('');
+            return $this->redirect('');
         } else {
             $this->view('auth/login', [
                 'title' => 'Đăng nhập - ' . APP_NAME,
@@ -126,7 +137,7 @@ class AuthController extends Controller {
 
         if ($userId) {
             $this->setFlash('success', 'Đăng ký thành công! Vui lòng đăng nhập.');
-            $this->redirect('auth/login');
+            return $this->redirect('auth/login');
         } else {
             $this->view('auth/register', [
                 'title'  => 'Đăng ký - ' . APP_NAME,
@@ -181,7 +192,7 @@ class AuthController extends Controller {
     public function google() {
         if (empty(GOOGLE_CLIENT_ID)) {
             $this->setFlash('error', 'Google Login chưa được cấu hình. Vui lòng liên hệ admin.');
-            $this->redirect('auth/login');
+            return $this->redirect('auth/login');
         }
         require_once APP_PATH . '/core/GoogleOAuth.php';
         $authUrl = GoogleOAuth::getAuthUrl();
@@ -198,7 +209,7 @@ class AuthController extends Controller {
         // Kiểm tra lỗi từ Google
         if (isset($_GET['error'])) {
             $this->setFlash('error', 'Đăng nhập Google bị từ chối.');
-            $this->redirect('auth/login');
+            return $this->redirect('auth/login');
         }
 
         $code  = $_GET['code'] ?? '';
@@ -207,21 +218,21 @@ class AuthController extends Controller {
         // Xác thực CSRF state
         if (!GoogleOAuth::verifyState($state)) {
             $this->setFlash('error', 'Phiên đăng nhập không hợp lệ. Vui lòng thử lại.');
-            $this->redirect('auth/login');
+            return $this->redirect('auth/login');
         }
 
         // Đổi code lấy access token
         $tokenData = GoogleOAuth::getAccessToken($code);
         if (!$tokenData) {
             $this->setFlash('error', 'Không thể kết nối với Google. Vui lòng thử lại.');
-            $this->redirect('auth/login');
+            return $this->redirect('auth/login');
         }
 
         // Lấy thông tin user từ Google
         $googleUser = GoogleOAuth::getUserInfo($tokenData['access_token']);
         if (!$googleUser || empty($googleUser['email'])) {
             $this->setFlash('error', 'Không thể lấy thông tin từ Google. Vui lòng thử lại.');
-            $this->redirect('auth/login');
+            return $this->redirect('auth/login');
         }
 
         // Tìm hoặc tạo user
@@ -230,10 +241,11 @@ class AuthController extends Controller {
 
         if (!$user) {
             $this->setFlash('error', 'Có lỗi xảy ra khi tạo tài khoản. Vui lòng thử lại.');
-            $this->redirect('auth/login');
+            return $this->redirect('auth/login');
         }
 
         // Đăng nhập
+        session_regenerate_id(true);
         $_SESSION['user_id']   = $user['id'];
         $_SESSION['username']  = $user['username'];
         $_SESSION['full_name'] = $user['full_name'];
@@ -243,7 +255,16 @@ class AuthController extends Controller {
         $_SESSION['membership'] = $user['membership'] ?? 'free';
         $_SESSION['membership_expired_at'] = $user['membership_expired_at'] ?? null;
 
+        // Auto-downgrade expired Pro in DB (same as regular login)
+        if (($_SESSION['membership'] === 'pro') && !empty($_SESSION['membership_expired_at']) 
+            && strtotime($_SESSION['membership_expired_at']) < time()) {
+            $db = getDB();
+            $db->prepare("UPDATE users SET membership = 'free' WHERE id = :id")
+               ->execute(['id' => $user['id']]);
+            $_SESSION['membership'] = 'free';
+        }
+
         $this->setFlash('success', 'Đăng nhập Google thành công! Chào mừng ' . $user['full_name']);
-        $this->redirect('');
+        return $this->redirect('');
     }
 }

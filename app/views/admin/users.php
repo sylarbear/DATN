@@ -13,6 +13,7 @@
             <a href="<?= BASE_URL ?>/admin/topics" class="admin-nav-item"><i class="fas fa-book"></i> Chủ đề</a>
             <a href="<?= BASE_URL ?>/admin/questions" class="admin-nav-item"><i class="fas fa-question-circle"></i> Câu hỏi</a>
             <a href="<?= BASE_URL ?>/admin/codes" class="admin-nav-item"><i class="fas fa-key"></i> Mã kích hoạt</a>
+            <a href="<?= BASE_URL ?>/admin/orders" class="admin-nav-item"><i class="fas fa-file-invoice-dollar"></i> Đơn nâng cấp</a>
             <a href="<?= BASE_URL ?>/admin/settings" class="admin-nav-item"><i class="fas fa-cog"></i> Cài đặt</a>
         </div>
     </div>
@@ -106,7 +107,11 @@ function deleteUser(id, name) {
 function showToast(msg, type) {
     const t = document.createElement('div');
     t.className = 'flash-message flash-' + type;
-    t.innerHTML = '<div class="flash-content"><i class="fas fa-'+(type==='success'?'check':'exclamation')+'-circle"></i><span>'+msg+'</span></div>';
+    const icon = type === 'success' ? 'check' : 'exclamation';
+    const span = document.createElement('span');
+    span.textContent = msg;
+    t.innerHTML = '<div class="flash-content"><i class="fas fa-' + icon + '-circle"></i></div>';
+    t.querySelector('.flash-content').appendChild(span);
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
 }

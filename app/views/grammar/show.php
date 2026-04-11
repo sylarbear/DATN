@@ -12,11 +12,13 @@
         <!-- Lesson Content -->
         <div class="section-card">
             <div class="grammar-content"><?= $lesson['content_html'] ?></div>
-            <?php if ($lesson['examples']): ?>
+            <?php if (!empty($lesson['examples'])): ?>
                 <div style="margin-top:1.5rem; padding:1rem; background:var(--bg-surface); border-radius:var(--radius); border-left:4px solid var(--primary);">
                     <h4 style="margin-bottom:0.5rem;"><i class="fas fa-lightbulb" style="color:var(--accent-orange);"></i> Ví dụ</h4>
                     <?php foreach (explode("\n", $lesson['examples']) as $ex): ?>
+                        <?php if (trim($ex) !== ''): ?>
                         <p style="margin:0.3rem 0; color:var(--text-secondary);"><em><?= htmlspecialchars($ex) ?></em></p>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
@@ -82,7 +84,11 @@ function submitGrammarQuiz() {
                 });
                 if (r.explanation) {
                     exp.style.display = 'block';
-                    exp.innerHTML = '<i class="fas fa-info-circle"></i> ' + r.explanation;
+                    exp.textContent = '';
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-info-circle';
+                    exp.appendChild(icon);
+                    exp.appendChild(document.createTextNode(' ' + r.explanation));
                 }
             });
             document.getElementById('quizResult').style.display = 'block';
@@ -90,7 +96,7 @@ function submitGrammarQuiz() {
                 `<div class="section-card" style="text-align:center; background:${d.score >= 70 ? '#ECFDF5' : '#FEF2F2'}; padding:1.5rem;">
                     <div style="font-size:2.5rem;">${d.score >= 70 ? '🎉' : '📝'}</div>
                     <h3>${d.correct}/${d.total} đúng (${d.score}%)</h3>
-                    <p style="color:var(--text-secondary);">${d.score >= 70 ? 'Tuyệt vời! +20 XP' : 'Hãy ôn lại bài giảng và thử lại!'}</p>
+                    <p style="color:var(--text-secondary);">${d.score >= 50 ? 'Chúc mừng! +20 XP' : 'Hãy ôn lại bài giảng và thử lại!'}</p>
                 </div>`;
         }
     });

@@ -9,6 +9,7 @@
             <a href="<?= BASE_URL ?>/admin/topics" class="admin-nav-item active"><i class="fas fa-book"></i> Chủ đề</a>
             <a href="<?= BASE_URL ?>/admin/questions" class="admin-nav-item"><i class="fas fa-question-circle"></i> Câu hỏi</a>
             <a href="<?= BASE_URL ?>/admin/codes" class="admin-nav-item"><i class="fas fa-key"></i> Mã kích hoạt</a>
+            <a href="<?= BASE_URL ?>/admin/orders" class="admin-nav-item"><i class="fas fa-file-invoice-dollar"></i> Đơn nâng cấp</a>
             <a href="<?= BASE_URL ?>/admin/settings" class="admin-nav-item"><i class="fas fa-cog"></i> Cài đặt</a>
         </div>
     </div>
@@ -35,7 +36,7 @@
                             <td><?= $t['vocab_count'] ?></td>
                             <td><?= $t['test_count'] ?></td>
                             <td>
-                                <button class="btn btn-sm btn-outline" onclick='editTopic(<?= json_encode($t) ?>)'><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-outline" onclick='editTopic(<?= htmlspecialchars(json_encode($t), ENT_QUOTES, "UTF-8") ?>)'><i class="fas fa-edit"></i></button>
                             </td>
                         </tr>
                     <?php endforeach; ?>

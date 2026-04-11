@@ -39,6 +39,10 @@ class UserProgress extends Model {
      * @param int $increment
      */
     public function increment($userId, $topicId, $field, $increment = 1) {
+        // Whitelist allowed fields to prevent SQL injection
+        $allowed = ['vocab_learned', 'lessons_completed', 'tests_passed', 'speaking_practiced'];
+        if (!in_array($field, $allowed)) return;
+
         $this->getOrCreate($userId, $topicId);
 
         $stmt = $this->db->prepare("

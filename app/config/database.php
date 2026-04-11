@@ -30,7 +30,8 @@ function getDB() {
         try {
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
-            die("Lỗi kết nối database: " . $e->getMessage());
+            error_log('Database connection error: ' . $e->getMessage());
+            die("Không thể kết nối cơ sở dữ liệu. Vui lòng liên hệ quản trị viên.");
         }
     }
     

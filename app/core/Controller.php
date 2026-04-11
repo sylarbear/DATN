@@ -16,7 +16,9 @@ class Controller {
             require_once $modelFile;
             return new $model();
         }
-        die("Model {$model} không tồn tại.");
+        error_log("Model not found: {$model}");
+        http_response_code(500);
+        die('Có lỗi hệ thống. Vui lòng thử lại sau.');
     }
 
     /**
@@ -31,15 +33,17 @@ class Controller {
             extract($data);
             
             // Load layout header
-            require_once APP_PATH . '/views/layouts/header.php';
+            require APP_PATH . '/views/layouts/header.php';
             
             // Load view chính
-            require_once $viewFile;
+            require $viewFile;
             
             // Load layout footer
-            require_once APP_PATH . '/views/layouts/footer.php';
+            require APP_PATH . '/views/layouts/footer.php';
         } else {
-            die("View {$view} không tồn tại.");
+            error_log("View not found: {$view}");
+            http_response_code(500);
+            die('Có lỗi hệ thống. Vui lòng thử lại sau.');
         }
     }
 
@@ -99,14 +103,14 @@ class Controller {
     }
 
     /**
-     * Lấy dữ liệu POST đã sanitize
+     * Lấy dữ liệu POST đã trim
      * @param string $key
      * @param mixed $default
      * @return mixed
      */
     protected function input($key, $default = null) {
         if (isset($_POST[$key])) {
-            return htmlspecialchars(trim($_POST[$key]), ENT_QUOTES, 'UTF-8');
+            return trim($_POST[$key]);
         }
         return $default;
     }
@@ -118,6 +122,6 @@ class Controller {
      * @return mixed
      */
     protected function query($key, $default = null) {
-        return isset($_GET[$key]) ? htmlspecialchars(trim($_GET[$key]), ENT_QUOTES, 'UTF-8') : $default;
+        return isset($_GET[$key]) ? trim($_GET[$key]) : $default;
     }
 }

@@ -143,13 +143,13 @@
                                     <td><span class="topic-level level-<?= $tp['level'] ?>"><?= ucfirst($tp['level']) ?></span></td>
                                     <td>
                                         <div class="mini-progress">
-                                            <div class="mini-bar" style="width: <?= $tp['total_vocab'] > 0 ? ($tp['vocab_learned'] / $tp['total_vocab'] * 100) : 0 ?>%"></div>
+                                            <div class="mini-bar" style="width: <?= $tp['total_vocab'] > 0 ? min(100, $tp['vocab_learned'] / $tp['total_vocab'] * 100) : 0 ?>%"></div>
                                         </div>
-                                        <small><?= $tp['vocab_learned'] ?>/<?= $tp['total_vocab'] ?></small>
+                                        <small><?= min($tp['vocab_learned'], $tp['total_vocab']) ?>/<?= $tp['total_vocab'] ?></small>
                                     </td>
-                                    <td><?= $tp['lessons_completed'] ?>/<?= $tp['total_lessons'] ?></td>
-                                    <td><?= $tp['tests_passed'] ?>/<?= $tp['total_tests'] ?></td>
-                                    <td><?= $tp['speaking_practiced'] ?>/<?= $tp['total_speaking'] ?></td>
+                                    <td><?= min($tp['lessons_completed'], $tp['total_lessons']) ?>/<?= $tp['total_lessons'] ?></td>
+                                    <td><?= min($tp['tests_passed'], $tp['total_tests']) ?>/<?= $tp['total_tests'] ?></td>
+                                    <td><?= min($tp['speaking_practiced'], $tp['total_speaking']) ?>/<?= $tp['total_speaking'] ?></td>
                                     <td><strong><?= $tp['total_score'] ?></strong></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -175,7 +175,7 @@
                                 </div>
                                 <div class="activity-info">
                                     <strong><?= htmlspecialchars($t['test_title']) ?></strong>
-                                    <small><?= $t['topic_name'] ?> • <?= date('d/m/Y', strtotime($t['completed_at'])) ?></small>
+                                    <small><?= htmlspecialchars($t['topic_name']) ?> • <?= date('d/m/Y', strtotime($t['completed_at'])) ?></small>
                                 </div>
                                 <div class="activity-score">
                                     <?php $pct = $t['total_points'] > 0 ? round($t['score'] / $t['total_points'] * 100) : 0; ?>
@@ -201,7 +201,7 @@
                                 </div>
                                 <div class="activity-info">
                                     <strong><?= htmlspecialchars(mb_substr($s['prompt_text'], 0, 50)) ?>...</strong>
-                                    <small><?= $s['topic_name'] ?> • <?= date('d/m/Y', strtotime($s['created_at'])) ?></small>
+                                    <small><?= htmlspecialchars($s['topic_name']) ?> • <?= date('d/m/Y', strtotime($s['created_at'])) ?></small>
                                 </div>
                                 <div class="activity-score">
                                     <span class="<?= $s['overall_score'] >= 60 ? 'text-success' : 'text-danger' ?>"><?= $s['overall_score'] ?></span>

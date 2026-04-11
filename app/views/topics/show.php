@@ -20,21 +20,21 @@
             <div class="progress-item">
                 <div class="progress-icon"><i class="fas fa-font"></i></div>
                 <div class="progress-info">
-                    <span><?= $progress['vocab_learned'] ?> / <?= $topic['vocab_count'] ?></span>
+                    <span><?= min($progress['vocab_learned'], $topic['vocab_count']) ?> / <?= $topic['vocab_count'] ?></span>
                     <small>Từ vựng đã học</small>
                 </div>
             </div>
             <div class="progress-item">
                 <div class="progress-icon"><i class="fas fa-book"></i></div>
                 <div class="progress-info">
-                    <span><?= $progress['lessons_completed'] ?> / <?= $topic['lesson_count'] ?></span>
+                    <span><?= min($progress['lessons_completed'], $topic['lesson_count']) ?> / <?= $topic['lesson_count'] ?></span>
                     <small>Bài học hoàn thành</small>
                 </div>
             </div>
             <div class="progress-item">
                 <div class="progress-icon"><i class="fas fa-trophy"></i></div>
                 <div class="progress-info">
-                    <span><?= $progress['tests_passed'] ?> / <?= $topic['test_count'] ?></span>
+                    <span><?= min($progress['tests_passed'], $topic['test_count']) ?> / <?= $topic['test_count'] ?></span>
                     <small>Test đã đạt</small>
                 </div>
             </div>
@@ -119,6 +119,7 @@ function showTab(tab) {
 
 // Text-to-Speech cho từ vựng
 function speakWord(word) {
+    speechSynthesis.cancel(); // Dừng audio trước đó
     const utterance = new SpeechSynthesisUtterance(word);
     utterance.lang = 'en-US';
     utterance.rate = 0.8;
@@ -132,8 +133,9 @@ function markLearned(btn, topicId) {
     
     fetch('<?= BASE_URL ?>/topic/learnVocab', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'topic_id=' + topicId
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({topic_id: topicId})
     })
     .then(r => r.json())
     .then(data => {

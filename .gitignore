@@ -15,3 +15,11 @@ desktop.ini
 
 # Debug
 debug_*.php
+
+# Sensitive files
+app/config/env.php
+app/config/openai_key.txt
+storage/logs/
+
+# Gemini AI
+.gemini/

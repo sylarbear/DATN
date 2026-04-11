@@ -59,6 +59,66 @@ class Topic extends Model {
      * Lấy tất cả topics kèm thống kê
      * @return array
      */
+    /**
+     * Tìm kiếm tổng hợp (topics, vocab, lessons, tests, grammar)
+     * @param string $keyword
+     * @return array
+     */
+    public function search($keyword) {
+        $like = '%' . addcslashes($keyword, '%_') . '%';
+        $results = [];
+
+        // Tìm trong topics
+        $stmt = $this->db->prepare("
+            SELECT id, name as title, description, level, 'topic' as type
+            FROM topics WHERE is_active = 1 AND (name LIKE :k OR description LIKE :k2)
+            ORDER BY sort_order ASC LIMIT 10
+        ");
+        $stmt->execute(['k' => $like, 'k2' => $like]);
+        $results['topics'] = $stmt->fetchAll();
+
+        // Tìm trong từ vựng
+        $stmt = $this->db->prepare("
+            SELECT v.id, v.word as title, v.meaning_vi as description, t.name as topic_name, t.id as topic_id, 'vocab' as type
+            FROM vocabularies v JOIN topics t ON v.topic_id = t.id
+            WHERE v.word LIKE :k OR v.meaning_vi LIKE :k2 OR v.pronunciation LIKE :k3
+            LIMIT 15
+        ");
+        $stmt->execute(['k' => $like, 'k2' => $like, 'k3' => $like]);
+        $results['vocabularies'] = $stmt->fetchAll();
+
+        // Tìm trong bài test
+        $stmt = $this->db->prepare("
+            SELECT ts.id, ts.title, ts.test_type as description, t.name as topic_name, t.id as topic_id, 'test' as type
+            FROM tests ts JOIN topics t ON ts.topic_id = t.id
+            WHERE ts.is_active = 1 AND ts.title LIKE :k
+            LIMIT 10
+        ");
+        $stmt->execute(['k' => $like]);
+        $results['tests'] = $stmt->fetchAll();
+
+        // Tìm trong bài học
+        $stmt = $this->db->prepare("
+            SELECT l.id, l.title, t.name as topic_name, t.id as topic_id, 'lesson' as type
+            FROM lessons l JOIN topics t ON l.topic_id = t.id
+            WHERE l.is_active = 1 AND l.title LIKE :k
+            LIMIT 10
+        ");
+        $stmt->execute(['k' => $like]);
+        $results['lessons'] = $stmt->fetchAll();
+
+        // Tìm trong ngữ pháp
+        $stmt = $this->db->prepare("
+            SELECT id, title, category as description, level, 'grammar' as type
+            FROM grammar_lessons WHERE title LIKE :k
+            LIMIT 10
+        ");
+        $stmt->execute(['k' => $like]);
+        $results['grammar'] = $stmt->fetchAll();
+
+        return $results;
+    }
+
     public function getAllWithStats() {
         $stmt = $this->db->query("
             SELECT t.*,

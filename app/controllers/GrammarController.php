@@ -27,19 +27,20 @@ class GrammarController extends Controller {
         $this->view('grammar/index', [
             'title' => 'Ngữ pháp - ' . APP_NAME,
             'grouped' => $grouped,
-            'lessons' => $lessons
+            'lessons' => $lessons,
+            'user' => Middleware::user()
         ]);
     }
 
     /** Chi tiết bài ngữ pháp */
     public function show($id = null) {
-        if (!$id) $this->redirect('grammar');
+        if (!$id) return $this->redirect('grammar');
         $db = getDB();
 
         $stmt = $db->prepare("SELECT * FROM grammar_lessons WHERE id=:id");
         $stmt->execute(['id' => $id]);
         $lesson = $stmt->fetch();
-        if (!$lesson) $this->redirect('grammar');
+        if (!$lesson) return $this->redirect('grammar');
 
         $stmt = $db->prepare("SELECT * FROM grammar_questions WHERE grammar_lesson_id=:id");
         $stmt->execute(['id' => $id]);
@@ -48,13 +49,14 @@ class GrammarController extends Controller {
         $this->view('grammar/show', [
             'title' => $lesson['title'] . ' - ' . APP_NAME,
             'lesson' => $lesson,
-            'questions' => $questions
+            'questions' => $questions,
+            'user' => Middleware::user()
         ]);
     }
 
     /** Chấm quiz ngữ pháp (AJAX) */
     public function submitQuiz() {
-        if (!$this->isMethod('POST')) $this->json(['error' => 'Method not allowed'], 405);
+        if (!$this->isMethod('POST')) return $this->json(['error' => 'Method not allowed'], 405);
         $input = json_decode(file_get_contents('php://input'), true);
         $answers = $input['answers'] ?? [];
         $lessonId = intval($input['lesson_id'] ?? 0);
@@ -78,12 +80,15 @@ class GrammarController extends Controller {
             ];
         }
 
-        // Award XP
+        // Award XP only if score >= 50%
+        $scorePercent = count($questions) > 0 ? round($correct / count($questions) * 100) : 0;
         require_once APP_PATH . '/core/StreakService.php';
         StreakService::updateStreak($_SESSION['user_id']);
-        StreakService::addXP($_SESSION['user_id'], 20, 'lesson_complete', "Hoàn thành quiz ngữ pháp");
+        if ($scorePercent >= 50) {
+            StreakService::addXP($_SESSION['user_id'], 20, 'lesson_complete', "Hoàn thành quiz ngữ pháp ({$scorePercent}%)");
+        }
 
-        $this->json([
+        return $this->json([
             'success' => true,
             'correct' => $correct,
             'total' => count($questions),

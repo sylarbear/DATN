@@ -10,7 +10,7 @@
 
             <?php if (!empty($error)): ?>
                 <div class="alert alert-error">
-                    <i class="fas fa-exclamation-circle"></i> <?= $error ?>
+                    <i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?>
                 </div>
             <?php endif; ?>
 

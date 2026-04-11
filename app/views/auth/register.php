@@ -12,7 +12,7 @@
                 <div class="alert alert-error">
                     <ul>
                         <?php foreach ($errors as $err): ?>
-                            <li><i class="fas fa-exclamation-circle"></i> <?= $err ?></li>
+                            <li><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($err) ?></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>

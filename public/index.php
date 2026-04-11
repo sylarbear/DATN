@@ -8,7 +8,13 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// Bắt đầu session
+// Bắt đầu session với cấu hình bảo mật
+session_set_cookie_params([
+    'lifetime' => 3600,      // 1 giờ
+    'path'     => '/',
+    'httponly'  => true,      // Không cho JS truy cập cookie
+    'samesite'  => 'Lax',    // Chống CSRF
+]);
 session_start();
 
 // Định nghĩa đường dẫn gốc

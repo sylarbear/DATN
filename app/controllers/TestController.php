@@ -25,11 +25,11 @@ class TestController extends Controller {
      */
     public function take($id = null) {
         Middleware::requireLogin();
-        if (!$id) $this->redirect('test');
+        if (!$id) return $this->redirect('test');
 
         $testModel = $this->model('Test');
         $test = $testModel->getWithQuestions($id);
-        if (!$test) $this->redirect('test');
+        if (!$test) return $this->redirect('test');
 
         // Listening và Reading chỉ dành cho Pro
         if (in_array($test['test_type'], ['listening', 'reading']) && !Middleware::isPro()) {
@@ -37,7 +37,7 @@ class TestController extends Controller {
                 'type' => 'warning',
                 'message' => 'Bài test ' . ucfirst($test['test_type']) . ' là tính năng Pro. Vui lòng nâng cấp để làm bài.'
             ];
-            $this->redirect('membership');
+            return $this->redirect('membership');
         }
 
         $topicModel = $this->model('Topic');
@@ -58,7 +58,7 @@ class TestController extends Controller {
         Middleware::requireLogin();
 
         if (!$this->isMethod('POST')) {
-            $this->json(['error' => 'Method not allowed'], 405);
+            return $this->json(['error' => 'Method not allowed'], 405);
         }
 
         // Lấy dữ liệu từ AJAX
@@ -68,7 +68,7 @@ class TestController extends Controller {
         $timeSpent = intval($input['time_spent'] ?? 0);
 
         if (!$testId || empty($answers)) {
-            $this->json(['error' => 'Dữ liệu không hợp lệ'], 400);
+            return $this->json(['error' => 'Dữ liệu không hợp lệ'], 400);
         }
 
         $userAnswerModel = $this->model('UserAnswer');
@@ -80,12 +80,26 @@ class TestController extends Controller {
         if ($test) {
             $progressModel = $this->model('UserProgress');
             if ($result['percentage'] >= $test['pass_score']) {
-                $progressModel->increment($_SESSION['user_id'], $test['topic_id'], 'tests_passed');
+                // Chỉ increment tests_passed nếu user chưa pass test này trước đó
+                $prevPassed = getDB()->prepare("
+                    SELECT COUNT(*) FROM test_results 
+                    WHERE user_id=:uid AND test_id=:tid AND id != :rid
+                    AND (score / NULLIF(total_points,0) * 100) >= :pass
+                ");
+                $prevPassed->execute([
+                    'uid' => $_SESSION['user_id'], 
+                    'tid' => $testId, 
+                    'rid' => $result['result_id'],
+                    'pass' => $test['pass_score']
+                ]);
+                if ($prevPassed->fetchColumn() == 0) {
+                    $progressModel->increment($_SESSION['user_id'], $test['topic_id'], 'tests_passed');
+                }
             }
             $progressModel->addScore($_SESSION['user_id'], $test['topic_id'], $result['score']);
         }
 
-        $this->json([
+        return $this->json([
             'success'    => true,
             'result_id'  => $result['result_id'],
             'score'      => $result['score'],
@@ -101,7 +115,7 @@ class TestController extends Controller {
      */
     public function result($resultId = null) {
         Middleware::requireLogin();
-        if (!$resultId) $this->redirect('test');
+        if (!$resultId) return $this->redirect('test');
 
         // Lấy test result
         $stmt = getDB()->prepare("
@@ -115,7 +129,7 @@ class TestController extends Controller {
         $stmt->execute(['id' => $resultId, 'user_id' => $_SESSION['user_id']]);
         $result = $stmt->fetch();
 
-        if (!$result) $this->redirect('test');
+        if (!$result) return $this->redirect('test');
 
         // Lấy chi tiết từng câu
         $userAnswerModel = $this->model('UserAnswer');

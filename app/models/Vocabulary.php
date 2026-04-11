@@ -21,6 +21,7 @@ class Vocabulary extends Model {
      * @return array
      */
     public function search($keyword) {
+        $escapedKeyword = str_replace(['%', '_'], ['\\%', '\\_'], $keyword);
         $stmt = $this->db->prepare("
             SELECT v.*, t.name as topic_name 
             FROM {$this->table} v
@@ -30,8 +31,8 @@ class Vocabulary extends Model {
             LIMIT 50
         ");
         $stmt->execute([
-            'keyword'  => "%{$keyword}%",
-            'keyword2' => "%{$keyword}%"
+            'keyword'  => "%{$escapedKeyword}%",
+            'keyword2' => "%{$escapedKeyword}%"
         ]);
         return $stmt->fetchAll();
     }

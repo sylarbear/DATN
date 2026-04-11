@@ -16,41 +16,69 @@
         <div class="practice-grid">
             <!-- Left: Reference Text + Recording -->
             <div class="practice-main">
-                <!-- Hướng dẫn -->
-                <div class="prompt-display">
-                    <h3><i class="fas fa-book-reader"></i> Bài đọc</h3>
-                    <p style="color:var(--text-muted); margin-bottom:1rem;">
-                        <i class="fas fa-info-circle"></i> Đọc to đoạn văn bên dưới bằng tiếng Anh. Hệ thống sẽ nhận dạng giọng nói và chấm điểm.
-                    </p>
-                    <!-- Reference text to read aloud -->
-                    <div class="reference-text" id="referenceText">
-                        <?= htmlspecialchars($prompt['sample_answer']) ?>
-                    </div>
-                    <div style="margin-top:0.75rem; display:flex; gap:0.5rem;">
+                <!-- Compact Voice Toolbar -->
+                <div class="voice-toolbar" id="voiceSelectorCard">
+                    <div class="voice-toolbar-left">
+                        <select class="voice-dropdown" id="voiceDropdown">
+                            <option value="">Đang tải giọng...</option>
+                        </select>
                         <button class="btn btn-sm btn-outline" onclick="speakSample()" title="Nghe mẫu">
-                            <i class="fas fa-volume-up"></i> Nghe phát âm mẫu
+                            <i class="fas fa-volume-up"></i> Nghe mẫu
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="stopSpeaking()" title="Dừng">
+                            <i class="fas fa-stop"></i>
                         </button>
                     </div>
+                    <div class="voice-toolbar-right">
+                        <div class="setting-group-mini">
+                            <label>Tốc độ</label>
+                            <input type="range" id="voiceRate" min="0.5" max="1.5" step="0.1" value="0.9">
+                            <span id="voiceRateVal">0.9x</span>
+                        </div>
+                        <div class="setting-group-mini">
+                            <label>Tone</label>
+                            <input type="range" id="voicePitch" min="0.5" max="1.5" step="0.1" value="1.0">
+                            <span id="voicePitchVal">1.0</span>
+                        </div>
+                    </div>
+                    <!-- Hidden voice options for JS compatibility -->
+                    <div class="voice-options" id="voiceOptions" style="display:none;"></div>
                 </div>
 
-                <!-- Recording Area -->
-                <div class="recording-area" id="recordingArea">
-                    <div class="recording-status" id="recordingStatus">
-                        <i class="fas fa-microphone fa-3x"></i>
-                        <p>Nhấn nút bên dưới để bắt đầu đọc bài</p>
+                <!-- Two-column: Text + Recording side by side -->
+                <div class="practice-split">
+                    <!-- Left: Reference Text -->
+                    <div class="prompt-display">
+                        <h3><i class="fas fa-book-reader"></i> Bài đọc</h3>
+                        <p style="color:var(--text-muted); margin-bottom:0.8rem; font-size:0.85rem;">
+                            <i class="fas fa-info-circle"></i> Đọc to đoạn văn bên dưới. Hệ thống sẽ nhận dạng và chấm điểm.
+                        </p>
+                        <div class="reference-text" id="referenceText">
+                            <?= htmlspecialchars($prompt['sample_answer']) ?>
+                        </div>
                     </div>
 
-                    <div class="recording-controls">
-                        <button class="btn-record" id="recordBtn" onclick="toggleRecording()">
-                            <i class="fas fa-microphone"></i>
-                            <span>Bắt đầu ghi âm</span>
-                        </button>
-                    </div>
+                    <!-- Right: Recording + Transcript -->
+                    <div class="recording-panel">
+                        <div class="recording-area" id="recordingArea">
+                            <div class="recording-status" id="recordingStatus">
+                                <i class="fas fa-microphone fa-2x"></i>
+                                <p>Nhấn để bắt đầu đọc</p>
+                            </div>
 
-                    <!-- Transcript Output -->
-                    <div class="transcript-area" id="transcriptArea" style="display:none;">
-                        <h4><i class="fas fa-file-alt"></i> Bạn đã đọc:</h4>
-                        <div class="transcript-text" id="transcriptText"></div>
+                            <div class="recording-controls">
+                                <button class="btn-record" id="recordBtn" onclick="toggleRecording()">
+                                    <i class="fas fa-microphone"></i>
+                                    <span>Ghi âm</span>
+                                </button>
+                            </div>
+
+                            <!-- Transcript Output -->
+                            <div class="transcript-area" id="transcriptArea" style="display:none;">
+                                <h4><i class="fas fa-file-alt"></i> Bạn đã đọc:</h4>
+                                <div class="transcript-text" id="transcriptText"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

@@ -75,8 +75,40 @@ class SpeakingAttempt extends Model {
             $fluencyScore = max(50, round(100 - ($lengthRatio - 1.3) * 50));
         }
 
-        // 3. Pronunciation Score: Confidence từ Web Speech API
-        $pronunciationScore = round($confidence * 100);
+        // 3. Pronunciation Score: Word-level phonetic matching
+        // Chrome's Web Speech API always returns confidence=0, so we can't rely on it.
+        // Instead, we measure how accurately the STT engine parsed each word
+        // (if STT recognized a word correctly, the user pronounced it clearly).
+        if ($confidence > 0.01) {
+            // If browser actually provides a real confidence, use it
+            $pronunciationScore = round($confidence * 100);
+        } else {
+            // Fallback: word-level similarity scoring
+            $pronScore = 0;
+            $pronTotal = count($sampleWords);
+            if ($pronTotal > 0) {
+                foreach ($sampleWords as $sw) {
+                    // Exact match = full score
+                    if (in_array($sw, $transcriptWords)) {
+                        $pronScore += 1.0;
+                        continue;
+                    }
+                    // Partial match: find closest word in transcript via similar_text
+                    $bestRatio = 0;
+                    foreach ($transcriptWords as $tw) {
+                        similar_text($sw, $tw, $percent);
+                        $bestRatio = max($bestRatio, $percent / 100);
+                    }
+                    // Only count if reasonably close (>60% similar)
+                    if ($bestRatio > 0.6) {
+                        $pronScore += $bestRatio;
+                    }
+                }
+                $pronunciationScore = min(100, round(($pronScore / $pronTotal) * 100));
+            } else {
+                $pronunciationScore = 0;
+            }
+        }
 
         // 4. Overall Score (weighted average)
         $overallScore = round(

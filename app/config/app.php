@@ -28,8 +28,18 @@ define('ACCURACY_WEIGHT', 0.4);
 define('FLUENCY_WEIGHT', 0.3);
 define('PRONUNCIATION_WEIGHT', 0.3);
 
-// Google OAuth 2.0 Configuration
-// Lấy tại: https://console.cloud.google.com/apis/credentials
-define('GOOGLE_CLIENT_ID', '');      // ← Dán Google Client ID vào đây
-define('GOOGLE_CLIENT_SECRET', '');   // ← Dán Google Client Secret vào đây
+// Load secrets từ env.php (file không push lên GitHub)
+if (file_exists(__DIR__ . '/env.php')) {
+    require_once __DIR__ . '/env.php';
+} else {
+    // Fallback: placeholder values nếu chưa tạo env.php
+    defined('GOOGLE_CLIENT_ID') || define('GOOGLE_CLIENT_ID', '');
+    defined('GOOGLE_CLIENT_SECRET') || define('GOOGLE_CLIENT_SECRET', '');
+    defined('CASSO_API_KEY') || define('CASSO_API_KEY', '');
+    defined('CASSO_WEBHOOK_SECRET') || define('CASSO_WEBHOOK_SECRET', '');
+}
 define('GOOGLE_REDIRECT_URI', BASE_URL . '/auth/googleCallback');
+
+// Bank info (public, hiển thị cho user)
+define('BANK_ACCOUNT_NO', '19036785007013'); // STK Techcombank
+

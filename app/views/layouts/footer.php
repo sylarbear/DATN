@@ -107,14 +107,22 @@
         const msgs = document.getElementById('chatbotMessages');
         const div = document.createElement('div');
         div.className = 'chat-msg ' + (isBot ? 'bot' : 'user');
-        div.innerHTML = '<div class="chat-bubble">' + formatMsg(text) + '</div>';
+        const content = isBot ? formatMsg(text) : escapeHtml(text);
+        div.innerHTML = '<div class="chat-bubble">' + content + '</div>';
         msgs.appendChild(div);
         msgs.scrollTop = msgs.scrollHeight;
     }
 
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
     function formatMsg(text) {
-        // Basic markdown: **bold**, `code`, newlines
-        return text
+        // Escape HTML first, THEN apply markdown formatting
+        let safe = escapeHtml(text);
+        return safe
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/`(.*?)`/g, '<code>$1</code>')
             .replace(/\n/g, '<br>');
@@ -149,7 +157,7 @@
                 addMessage(d.message, true);
                 chatHistory.push({role:'assistant', content: d.message});
             } else {
-                addMessage('⚠️ ' + (d.error || 'Lỗi kết nối AI'), true);
+                addMessage('⚠️ ' + escapeHtml(d.error || 'Lỗi kết nối AI'), true);
             }
         })
         .catch(() => {

@@ -33,6 +33,7 @@
             </button>
 
             <ul class="nav-menu" id="navMenu">
+                <li><a href="<?= BASE_URL ?>/topic/search" class="nav-link" title="Tìm kiếm"><i class="fas fa-search"></i> Tìm kiếm</a></li>
                 <li><a href="<?= BASE_URL ?>" class="nav-link"><i class="fas fa-home"></i> Trang chủ</a></li>
                 <li><a href="<?= BASE_URL ?>/topic" class="nav-link"><i class="fas fa-book-open"></i> Chủ đề</a></li>
                 <li><a href="<?= BASE_URL ?>/test" class="nav-link"><i class="fas fa-clipboard-check"></i> Bài test</a></li>
@@ -47,6 +48,8 @@
                             <a href="<?= BASE_URL ?>/grammar"><i class="fas fa-graduation-cap"></i> Ngữ pháp</a>
                             <a href="<?= BASE_URL ?>/leaderboard"><i class="fas fa-trophy"></i> Xếp hạng</a>
                             <a href="<?= BASE_URL ?>/bookmark"><i class="fas fa-bookmark"></i> Từ đã lưu</a>
+                            <a href="<?= BASE_URL ?>/support"><i class="fas fa-headset"></i> Hỗ trợ</a>
+                            <a href="<?= BASE_URL ?>/wallet"><i class="fas fa-wallet"></i> Ví của tôi</a>
                             <?php if (!Middleware::isPro()): ?>
                                 <a href="<?= BASE_URL ?>/membership" class="nav-more-upgrade"><i class="fas fa-crown"></i> Nâng cấp Pro</a>
                             <?php endif; ?>
@@ -92,7 +95,7 @@
                 <?php else: ?>
                     <i class="fas fa-info-circle"></i>
                 <?php endif; ?>
-                <span><?= $_SESSION['flash']['message'] ?></span>
+                <span><?= htmlspecialchars($_SESSION['flash']['message']) ?></span>
                 <button class="flash-close" onclick="this.parentElement.parentElement.remove()">
                     <i class="fas fa-times"></i>
                 </button>

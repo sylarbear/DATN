@@ -25,6 +25,16 @@ CREATE TABLE `users` (
     `full_name` VARCHAR(100) DEFAULT NULL,
     `avatar` VARCHAR(255) DEFAULT 'default.png',
     `role` ENUM('student', 'admin') DEFAULT 'student',
+    `membership` ENUM('free', 'pro') DEFAULT 'free',
+    `membership_expired_at` DATETIME DEFAULT NULL,
+    `current_streak` INT DEFAULT 0,
+    `longest_streak` INT DEFAULT 0,
+    `last_activity_date` DATE DEFAULT NULL,
+    `total_xp` INT DEFAULT 0,
+    `level` INT DEFAULT 1,
+    `daily_goal` INT DEFAULT 20,
+    `daily_xp_today` INT DEFAULT 0,
+    `daily_goal_date` DATE DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -245,11 +255,11 @@ CREATE TABLE `user_progress` (
 
 -- Admin account (password: admin123)
 INSERT INTO `users` (`username`, `email`, `password_hash`, `full_name`, `role`) VALUES
-('admin', 'admin@englishmaster.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator', 'admin');
+('admin', 'admin@englishmaster.com', '$2y$10$2e0fVI3pswsouUSIserZ7e.9R12E4hFWRVsvSGGlur.k5MnY.oF9i', 'Administrator', 'admin');
 
 -- Student account (password: student123)
 INSERT INTO `users` (`username`, `email`, `password_hash`, `full_name`, `role`) VALUES
-('student1', 'student@englishmaster.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Nguyễn Văn A', 'student');
+('student1', 'student@englishmaster.com', '$2y$10$2e0fVI3pswsouUSIserZ7e.9R12E4hFWRVsvSGGlur.k5MnY.oF9i', 'Nguyễn Văn A', 'student');
 
 -- Topics
 INSERT INTO `topics` (`name`, `slug`, `description`, `level`, `sort_order`) VALUES

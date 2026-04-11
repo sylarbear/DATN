@@ -3,10 +3,33 @@
  * Read-aloud mode: User đọc văn bản chuẩn bị sẵn, hệ thống chấm điểm
  */
 
+// Escape HTML utility
+function escHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 let recognition = null;
 let isRecording = false;
 let fullTranscript = '';
 let lastConfidence = 0.5;
+
+// ===== FIX: Dừng audio khi chuyển trang =====
+window.addEventListener('beforeunload', function() {
+    speechSynthesis.cancel();
+});
+// Một số browser không fire beforeunload, dùng pagehide làm fallback
+window.addEventListener('pagehide', function() {
+    speechSynthesis.cancel();
+});
+
+// ===== Auto-init voice selector nếu có trên trang =====
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('voiceOptions') || document.getElementById('voiceDropdown')) {
+        initVoiceSelector();
+    }
+});
 
 /**
  * Khởi tạo Speech Recognition
@@ -43,11 +66,11 @@ function initSpeechRecognition() {
             fullTranscript += finalTranscript;
         }
 
-        // Hiển thị transcript
+        // Hiển thị transcript (escaped to prevent XSS)
         const el = document.getElementById('transcriptText');
         if (el) {
-            el.innerHTML = fullTranscript + 
-                '<span style="color: var(--text-muted); font-style: italic;">' + interimTranscript + '</span>';
+            el.innerHTML = escHtml(fullTranscript) + 
+                '<span style="color: var(--text-muted); font-style: italic;">' + escHtml(interimTranscript) + '</span>';
         }
     };
 
@@ -177,12 +200,12 @@ function submitSpeaking() {
         if (data.success) {
             displayScores(data.scores);
         } else {
-            scoreResult.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--error);"><i class="fas fa-exclamation-circle fa-2x"></i><p style="margin-top:0.5rem;">' + (data.error || 'Có lỗi xảy ra') + '</p></div>';
+            scoreResult.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--error);"><i class="fas fa-exclamation-circle fa-2x"></i><p style="margin-top:0.5rem;">' + escHtml(data.error || 'Có lỗi xảy ra') + '</p></div>';
         }
     })
     .catch(err => {
         console.error('[Speaking] Error:', err);
-        scoreResult.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--error);"><i class="fas fa-exclamation-circle fa-2x"></i><p style="margin-top:0.5rem;">Lỗi: ' + err.message + '</p><button class="btn btn-primary btn-sm" onclick="submitSpeaking()" style="margin-top:1rem;"><i class="fas fa-redo"></i> Thử lại</button></div>';
+        scoreResult.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--error);"><i class="fas fa-exclamation-circle fa-2x"></i><p style="margin-top:0.5rem;">Lỗi: ' + escHtml(err.message) + '</p><button class="btn btn-primary btn-sm" onclick="submitSpeaking()" style="margin-top:1rem;"><i class="fas fa-redo"></i> Thử lại</button></div>';
     });
 }
 
@@ -221,7 +244,7 @@ function displayScores(scores) {
                 <label>Pronunciation</label>
             </div>
         </div>
-        <div class="feedback-text">${scores.feedback}</div>
+        <div class="feedback-text">${escHtml(scores.feedback || '')}</div>
         <div class="pronunciation-heatmap" style="margin:1.5rem 0;">
             <h4><i class="fas fa-highlighter"></i> Phân tích phát âm</h4>
             <div id="heatmapDisplay" style="margin:0.5rem 0;line-height:2;"></div>
@@ -312,13 +335,13 @@ function resetPractice() {
     const status = document.getElementById('recordingStatus');
     if (status) {
         status.classList.remove('active');
-        status.innerHTML = '<i class="fas fa-microphone fa-3x"></i><p>Nhấn nút bên dưới để bắt đầu đọc bài</p>';
+        status.innerHTML = '<i class="fas fa-microphone fa-2x"></i><p>Nhấn để bắt đầu đọc</p>';
     }
     
     const btn = document.getElementById('recordBtn');
     if (btn) {
         btn.classList.remove('recording');
-        btn.innerHTML = '<i class="fas fa-microphone"></i> <span>Bắt đầu ghi âm</span>';
+        btn.innerHTML = '<i class="fas fa-microphone"></i> <span>Ghi âm</span>';
     }
 
     const refText = document.getElementById('referenceText');
@@ -423,29 +446,45 @@ function initVoiceSelector() {
  */
 function renderVoiceOptions() {
     const container = document.getElementById('voiceOptions');
-    if (!container) return;
-
+    const dropdown = document.getElementById('voiceDropdown');
     const flagMap = { 'en-US': '🇺🇸', 'en-GB': '🇬🇧', 'en-AU': '🇦🇺', 'en-IN': '🇮🇳', 'en-IE': '🇮🇪', 'en-ZA': '🇿🇦' };
 
-    let html = '';
-    availableVoices.forEach((voice, idx) => {
-        const checked = voice === selectedVoice ? 'checked' : '';
-        const flag = flagMap[voice.lang] || '🌐';
-        const labelParts = voice.name.replace('Microsoft ', '').replace('Google ', '');
-        
-        html += `
-            <label class="voice-option ${checked ? 'active' : ''}" data-idx="${idx}">
-                <input type="radio" name="voiceSelect" value="${idx}" ${checked} onchange="selectVoice(${idx})">
-                <span class="voice-flag">${flag}</span>
-                <span class="voice-name">${labelParts}</span>
-                <span class="voice-lang">${voice.lang}</span>
-                <button type="button" class="voice-preview" onclick="previewVoice(${idx}, event)" title="Nghe thử">
-                    <i class="fas fa-play"></i>
-                </button>
-            </label>
-        `;
-    });
-    container.innerHTML = html;
+    // Render radio buttons (for freetext page)
+    if (container) {
+        let html = '';
+        availableVoices.forEach((voice, idx) => {
+            const checked = voice === selectedVoice ? 'checked' : '';
+            const flag = flagMap[voice.lang] || '🌐';
+            const labelParts = voice.name.replace('Microsoft ', '').replace('Google ', '');
+            html += `
+                <label class="voice-option ${checked ? 'active' : ''}" data-idx="${idx}">
+                    <input type="radio" name="voiceSelect" value="${idx}" ${checked} onchange="selectVoice(${idx})">
+                    <span class="voice-flag">${flag}</span>
+                    <span class="voice-name">${labelParts}</span>
+                    <span class="voice-lang">${voice.lang}</span>
+                    <button type="button" class="voice-preview" onclick="previewVoice(${idx}, event)" title="Nghe thử">
+                        <i class="fas fa-play"></i>
+                    </button>
+                </label>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    // Render dropdown (for practice page compact toolbar)
+    if (dropdown) {
+        let opts = '';
+        availableVoices.forEach((voice, idx) => {
+            const flag = flagMap[voice.lang] || '🌐';
+            const label = voice.name.replace('Microsoft ', '').replace('Google ', '');
+            const sel = voice === selectedVoice ? 'selected' : '';
+            opts += `<option value="${idx}" ${sel}>${flag} ${label} (${voice.lang})</option>`;
+        });
+        dropdown.innerHTML = opts;
+        dropdown.addEventListener('change', function() {
+            selectVoice(parseInt(this.value));
+        });
+    }
 }
 
 /**

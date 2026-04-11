@@ -87,8 +87,3 @@
 </section>
 
 <script src="<?= BASE_URL ?>/js/speaking.js?v=<?= time() ?>"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    initVoiceSelector();
-});
-</script>
