@@ -4,11 +4,11 @@
  * Kết nối MySQL bằng PDO
  */
 
-// Thông tin kết nối database
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'english_master');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+// Thông tin kết nối database (có thể override trong env.php)
+defined('DB_HOST') || define('DB_HOST', 'localhost');
+defined('DB_NAME') || define('DB_NAME', 'english_master');
+defined('DB_USER') || define('DB_USER', 'root');
+defined('DB_PASS') || define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 
 /**
