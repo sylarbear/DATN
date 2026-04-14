@@ -7,6 +7,9 @@
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=black)
 ![License](https://img.shields.io/badge/License-MIT-green)
+![Deploy](https://img.shields.io/badge/Demo-Live-brightgreen)
+
+### 🌐 Live Demo: [https://englishlearning.gt.tc](https://englishlearning.gt.tc)
 
 ---
 
@@ -95,6 +98,40 @@ define('GOOGLE_CLIENT_SECRET', 'your_google_client_secret');
 | **Admin** | `admin` | `admin123` |
 | **User (Pro)** | `student1` | `123456` |
 | **User (Free)** | `student2` | `123456` |
+
+---
+
+## 🌐 Demo trực tuyến
+
+🔗 **Website**: [https://englishlearning.gt.tc](https://englishlearning.gt.tc)
+
+### Hướng dẫn test nhanh
+
+1. **Truy cập** [https://englishlearning.gt.tc](https://englishlearning.gt.tc)
+2. **Đăng nhập** với tài khoản demo:
+   - Admin: `admin` / `admin123`
+   - Student: `student1` / `123456`
+
+### Các tính năng có thể test
+
+| # | Tính năng | Cách test |
+|---|---|---|
+| 1 | 📚 **Học từ vựng** | Chủ đề → chọn topic → xem từ vựng, click "Đã học" |
+| 2 | 🃏 **Flashcard** | Chủ đề → chọn topic → tab "Flashcard" → lật thẻ |
+| 3 | 📖 **Bài học** | Chủ đề → chọn topic → tab "Bài học" |
+| 4 | 📝 **Làm bài test** | Bài test → chọn quiz → làm bài → xem kết quả |
+| 5 | 📗 **Ngữ pháp** | Thêm → Ngữ pháp → xem bài → làm quiz |
+| 6 | 🎤 **Luyện nói** | Luyện nói → chọn bài → ghi âm (cần Chrome) |
+| 7 | 📊 **Dashboard** | Thêm → Dashboard → xem thống kê học tập |
+| 8 | 🏆 **Xếp hạng** | Thêm → Xếp hạng → bảng xếp hạng XP |
+| 9 | 🔖 **Bookmark** | Thêm → Từ đã lưu → quản lý từ bookmark |
+| 10 | 💰 **Ví điện tử** | Thêm → Ví của tôi → xem số dư, lịch sử |
+| 11 | 💎 **Mua gói Pro** | Thêm → Quản lý Pro → mua gói membership |
+| 12 | 🎧 **Hỗ trợ** | Thêm → Hỗ trợ → tạo ticket mới |
+| 13 | ⚙️ **Admin Panel** | Đăng nhập admin → Admin Panel → quản lý hệ thống |
+
+> **Lưu ý**: Tính năng Luyện nói AI cần microphone và trình duyệt Chrome/Edge.
+> Google OAuth chưa được cấu hình trên bản demo.
 
 ---
 
